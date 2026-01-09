@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from 'db/datasource';
 import { AccommodationsModule } from './accommodations/accommodations.module';
+import { MetricsModule } from './metrics';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AccommodationsModule } from './accommodations/accommodations.module';
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
     AccommodationsModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
