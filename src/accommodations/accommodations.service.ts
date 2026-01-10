@@ -12,7 +12,9 @@ export class AccommodationsService {
   ) {}
 
   async findAll(paginationDto: PaginationDto) {
-    const { page, pageSize } = paginationDto;
+    const page = Number(paginationDto.page) || 1;
+    const pageSize = Number(paginationDto.pageSize) || 20;
+
     const skip = (page - 1) * pageSize;
 
     const [data, total] = await this.accommodationRepository.findAndCount({
