@@ -1,4 +1,4 @@
-import { Controller, Get, Body, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Param, Delete, Query } from '@nestjs/common';
 import { AccommodationsService } from './accommodations.service';
 import { GetAccommodationsDto } from './dto/get-accommodations.dto';
 
@@ -7,7 +7,7 @@ export class AccommodationsController {
   constructor(private readonly accommodationsService: AccommodationsService) {}
 
   @Get()
-  findAll(@Body() getAccommodationsDto: GetAccommodationsDto) {
+  findAll(@Query() getAccommodationsDto: GetAccommodationsDto) {
     return this.accommodationsService.findAll(getAccommodationsDto);
   }
 
