@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('accommodations')
 export class Accommodation {
@@ -14,6 +14,12 @@ export class Accommodation {
   @Column('text', { array: true, default: '{}' })
   amenities: string[];
 
+  @Column('text', { array: true, default: '{}' })
+  photoKeys: string[];
+
+  // Virtual property - populated by service layer
+  photoUrls?: string[];
+
   @Column({ type: 'int', default: 1 })
   minGuests: number;
 
@@ -28,4 +34,10 @@ export class Accommodation {
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   basePrice: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
