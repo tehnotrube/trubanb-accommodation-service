@@ -1,11 +1,17 @@
 import { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 
 export default async function globalTeardown() {
-  const container = global.__TEST_CONTAINER as StartedPostgreSqlContainer;
+  const dbContainer = global.__DB_CONTAINER__ as StartedPostgreSqlContainer;
+  const minioContainer = global.__MINIO_CONTAINER__ as StartedPostgreSqlContainer;
 
-  if (container) {
-    await container.stop();
+  if (dbContainer) {
+    await dbContainer.stop();
   }
 
-  delete global.__TEST_CONTAINER;
+  if (minioContainer) {
+    await minioContainer.stop(); 
+  }
+
+  delete global.__DB_CONTAINER__;
+  delete global.__MINIO_CONTAINER__;
 }

@@ -17,7 +17,6 @@ export class Accommodation {
   @Column('text', { array: true, default: '{}' })
   photoKeys: string[];
 
-  // Virtual property - populated by service layer
   photoUrls?: string[];
 
   @Column({ type: 'int', default: 1 })
@@ -32,7 +31,10 @@ export class Accommodation {
   @Column({ type: 'boolean', default: false })
   autoApprove: boolean;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: 'decimal', precision: 10, scale: 2, transformer: {
+    to: (value: number) => value,
+    from: (value: string) => parseFloat(value),
+  } })
   basePrice: number;
 
   @CreateDateColumn()

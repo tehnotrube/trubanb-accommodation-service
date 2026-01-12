@@ -36,9 +36,15 @@ export class StorageService implements OnModuleInit {
   }
 
   private async ensureBucketExists(): Promise<void> {
-    const exists = await this.minioClient.bucketExists(this.bucketName);
-    if (!exists) {
-      await this.minioClient.makeBucket(this.bucketName);
+    try {
+      const exists = await this.minioClient.bucketExists(this.bucketName);
+      if (!exists) {
+        await this.minioClient.makeBucket(this.bucketName);
+      }
+    } catch (error) {
+      if (error.code !== 'BucketAlreadyOwnedByYou') {
+        throw error;
+      }
     }
   }
 

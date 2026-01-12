@@ -2,43 +2,65 @@ import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { DataSource, DataSourceOptions } from 'typeorm';
+import { MinioContainer, StartedMinioContainer } from '@testcontainers/minio';
 import { getTypeOrmConfig } from '../../src/db/typeorm.config';
 
-export let dbConfig: DataSourceOptions;
+export let dbContainer: StartedPostgreSqlContainer;
+export let minioContainer: StartedMinioContainer;
 
 export default async function globalSetup() {
-  const container = await new PostgreSqlContainer('postgres:16-alpine')
+  dbContainer = await new PostgreSqlContainer('postgres:16-alpine')
     .withDatabase('test_db')
     .withUsername('test')
     .withPassword('test')
     .withStartupTimeout(60000)
     .start();
 
-  const dbConfig = getTypeOrmConfig({
-    isTest: true,
-    runMigrations: false,
-    overrides: {
-      host: container.getHost(),
-      port: container.getPort(),
-      username: container.getUsername(),
-      password: container.getPassword(),
-      database: container.getDatabase(),
-    },
-  });
+  minioContainer = await new MinioContainer('minio/minio:latest')
+    .withUsername('minioadmin')
+    .withPassword('minioadmin123')
+    .withExposedPorts(9000)
+    .start();
 
-  process.env.DB_HOST = container.getHost();
-  process.env.DB_PORT = String(container.getPort());
-  process.env.DB_USER = container.getUsername();
-  process.env.DB_PASSWORD = container.getPassword();
-  process.env.DB_NAME = container.getDatabase();
+  const minioHost = minioContainer.getHost();
+  const minioPort = minioContainer.getMappedPort(9000);
+  const minioEndpoint = `http://${minioHost}:${minioPort}`;
+
+  process.env.DB_HOST = dbContainer.getHost();
+  process.env.DB_PORT = String(dbContainer.getPort());
+  process.env.DB_NAME = dbContainer.getDatabase();
+  process.env.DB_USER = dbContainer.getUsername();
+  process.env.DB_PASSWORD = dbContainer.getPassword();
+
+  process.env.MINIO_ENDPOINT = minioHost;
+  process.env.MINIO_PORT = String(minioPort); 
+  process.env.MINIO_ACCESS_KEY = 'minioadmin';
+  process.env.MINIO_SECRET_KEY = 'minioadmin123';
+  process.env.MINIO_BUCKET = 'test-photos';
+  process.env.MINIO_USE_SSL = 'false';
+  process.env.STORAGE_PUBLIC_URL = minioEndpoint;
+
   process.env.ENV = 'test';
   process.env.NODE_ENV = 'test';
 
-  const migrationDataSource = new DataSource(dbConfig);
+  const config = getTypeOrmConfig({
+    isTest: true,
+    runMigrations: true,
+    overrides: {
+      host: dbContainer.getHost(),
+      port: dbContainer.getPort(),
+      username: dbContainer.getUsername(),
+      password: dbContainer.getPassword(),
+      database: dbContainer.getDatabase(),
+    },
+  });
 
-  await migrationDataSource.initialize();
-  await migrationDataSource.runMigrations();
+  const { DataSource } = await import('typeorm');
+  const ds = new DataSource(config);
+  await ds.initialize();
+  await ds.runMigrations();
+  await ds.destroy();
 
-  global.__TEST_CONTAINER = container as StartedPostgreSqlContainer | undefined;
+  global.__DB_CONTAINER__ = dbContainer;
+  global.__MINIO_CONTAINER__ = minioContainer;
 }

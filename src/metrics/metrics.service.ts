@@ -19,16 +19,10 @@ export class MetricsService {
     private readonly httpResponseSizeBytes: Counter<string>,
   ) {}
 
-  /**
-   * Manually increment the HTTP requests counter
-   */
   incrementRequests(method: string, route: string, statusCode: string): void {
     this.httpRequestsTotal.inc({ method, route, status_code: statusCode });
   }
 
-  /**
-   * Manually observe request duration
-   */
   observeDuration(
     method: string,
     route: string,
@@ -41,30 +35,18 @@ export class MetricsService {
     );
   }
 
-  /**
-   * Set the number of unique visitors
-   */
   setUniqueVisitors(count: number): void {
     this.uniqueVisitors.set(count);
   }
 
-  /**
-   * Increment the 404 error counter
-   */
   increment404Error(endpoint: string): void {
     this.http404Errors.inc({ endpoint });
   }
 
-  /**
-   * Increment request size bytes
-   */
   incrementRequestSize(method: string, route: string, bytes: number): void {
     this.httpRequestSizeBytes.inc({ method, route }, bytes);
   }
 
-  /**
-   * Increment response size bytes
-   */
   incrementResponseSize(method: string, route: string, bytes: number): void {
     this.httpResponseSizeBytes.inc({ method, route }, bytes);
   }
