@@ -25,7 +25,7 @@ describe('Accommodations (e2e)', () => {
     const response = await request(
       app.getHttpServer() as Parameters<typeof request>[0],
     )
-      .get('/accommodations')
+      .get('/api/accommodations')
       .expect(200);
 
     const paginatedResponse = response.body as PaginatedResponse<Accommodation>;
