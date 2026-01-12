@@ -1,4 +1,4 @@
-import { Controller, Get, Body, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { AccommodationsService } from './accommodations.service';
 import { GetAccommodationsDto } from './dto/get-accommodations.dto';
 import { KongJwtGuard } from '../auth/guards/kong-jwt.guard';
@@ -13,7 +13,7 @@ export class AccommodationsController {
   constructor(private readonly accommodationsService: AccommodationsService) {}
 
   @Get()
-  findAll(@Body() getAccommodationsDto: GetAccommodationsDto) {
+  findAll(@Query() getAccommodationsDto: GetAccommodationsDto) {
     return this.accommodationsService.findAll(getAccommodationsDto);
   }
 
