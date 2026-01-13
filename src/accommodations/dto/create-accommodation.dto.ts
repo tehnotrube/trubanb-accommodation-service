@@ -6,7 +6,6 @@ import {
   IsNumber,
   Min,
   IsOptional,
-  ArrayMinSize,
 } from 'class-validator';
 
 export class CreateAccommodationDto {

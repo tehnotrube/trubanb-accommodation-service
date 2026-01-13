@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('accommodations')
 export class Accommodation {
@@ -31,10 +37,15 @@ export class Accommodation {
   @Column({ type: 'boolean', default: false })
   autoApprove: boolean;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, transformer: {
-    to: (value: number) => value,
-    from: (value: string) => parseFloat(value),
-  } })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   basePrice: number;
 
   @CreateDateColumn()

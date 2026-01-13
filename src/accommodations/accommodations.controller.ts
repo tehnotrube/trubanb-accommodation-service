@@ -12,8 +12,6 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
-  ParseFilePipe,
-  MaxFileSizeValidator,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AccommodationsService } from './accommodations.service';
@@ -22,10 +20,11 @@ import { CreateAccommodationDto } from './dto/create-accommodation.dto';
 import { UpdateAccommodationDto } from './dto/update-accommodation.dto';
 import { AccommodationResponseDto } from './dto/accommodation.response.dto';
 import { PaginatedResponse } from '../common/types/PaginatedResponse';
-import { RolesGuard, UserRole } from 'src/auth/guards/roles.guard';
-import { KongJwtGuard } from 'src/auth/guards/kong-jwt.guard';
-import { Roles } from 'src/auth/decorators/roles.decorator';
+import { ParseFilePipe, MaxFileSizeValidator } from '@nestjs/common';
 import { ImageFileValidator } from './validators/image-file.validator';
+import { RolesGuard, UserRole } from '../auth/guards/roles.guard';
+import { KongJwtGuard } from '../auth/guards/kong-jwt.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('accommodations')
 export class AccommodationsController {

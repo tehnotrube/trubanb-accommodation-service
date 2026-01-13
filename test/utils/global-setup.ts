@@ -33,7 +33,7 @@ export default async function globalSetup() {
   process.env.DB_PASSWORD = dbContainer.getPassword();
 
   process.env.MINIO_ENDPOINT = minioHost;
-  process.env.MINIO_PORT = String(minioPort); 
+  process.env.MINIO_PORT = String(minioPort);
   process.env.MINIO_ACCESS_KEY = 'minioadmin';
   process.env.MINIO_SECRET_KEY = 'minioadmin123';
   process.env.MINIO_BUCKET = 'test-photos';

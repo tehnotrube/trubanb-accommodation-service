@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Minio from 'minio';
+import { S3Error } from 'minio';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -15,8 +16,14 @@ export class StorageService implements OnModuleInit {
       endPoint: this.configService.get<string>('MINIO_ENDPOINT', 'localhost'),
       port: this.configService.get<number>('MINIO_PORT', 9000),
       useSSL: useSSL === 'true',
-      accessKey: this.configService.get<string>('MINIO_ACCESS_KEY', 'minioadmin'),
-      secretKey: this.configService.get<string>('MINIO_SECRET_KEY', 'minioadmin'),
+      accessKey: this.configService.get<string>(
+        'MINIO_ACCESS_KEY',
+        'minioadmin',
+      ),
+      secretKey: this.configService.get<string>(
+        'MINIO_SECRET_KEY',
+        'minioadmin',
+      ),
     });
 
     this.bucketName = this.configService.get<string>(
@@ -42,7 +49,10 @@ export class StorageService implements OnModuleInit {
         await this.minioClient.makeBucket(this.bucketName);
       }
     } catch (error) {
-      if (error.code !== 'BucketAlreadyOwnedByYou') {
+      if (
+        error instanceof S3Error &&
+        error.code !== 'BucketAlreadyOwnedByYou'
+      ) {
         throw error;
       }
     }

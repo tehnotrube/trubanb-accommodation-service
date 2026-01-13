@@ -1,6 +1,8 @@
 import { FileValidator } from '@nestjs/common';
 
-export class ImageFileValidator extends FileValidator<{ allowedTypes: string[] }> {
+export class ImageFileValidator extends FileValidator<{
+  allowedTypes: string[];
+}> {
   buildErrorMessage(): string {
     return 'File must be an image (jpeg, png, or webp)';
   }
