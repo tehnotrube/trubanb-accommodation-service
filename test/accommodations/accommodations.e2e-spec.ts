@@ -22,12 +22,14 @@ describe('Accommodations (e2e)', () => {
   });
 
   it('GET /accommodations returns 200 with correct seeded data', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/accommodations')
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
+      .get('/api/accommodations')
       .expect(200);
 
     const paginatedResponse = response.body as PaginatedResponse<Accommodation>;
-    
+
     const accommodations = paginatedResponse.data;
 
     expect(Array.isArray(accommodations)).toBe(true);
