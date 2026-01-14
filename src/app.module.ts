@@ -5,7 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccommodationsModule } from './accommodations/accommodations.module';
 import { HealthModule } from './health/health.module';
-import { MetricsModule } from './metrics';
+import { MetricsModule } from './metrics/metrics.module';
 import { getTypeOrmConfig } from './db/typeorm.config';
 
 @Module({

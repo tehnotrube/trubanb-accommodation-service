@@ -1,40 +1,125 @@
-import { Injectable } from '@nestjs/common';
-import { PaginationDto } from '../common/dto/pagination.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { plainToInstance } from 'class-transformer';
 import { Accommodation } from './entities/accommodation.entity';
+import { AccommodationResponseDto } from './dto/accommodation.response.dto';
+import { CreateAccommodationDto } from './dto/create-accommodation.dto';
+import { UpdateAccommodationDto } from './dto/update-accommodation.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { StorageService } from '../storage/storage.service';
+import { PaginatedResponse } from '../common/types/PaginatedResponse';
 
 @Injectable()
 export class AccommodationsService {
   constructor(
     @InjectRepository(Accommodation)
     private readonly accommodationRepository: Repository<Accommodation>,
+    private readonly storageService: StorageService,
   ) {}
 
-  async findAll(paginationDto: PaginationDto) {
+  private toResponseDto(entity: Accommodation): AccommodationResponseDto {
+    return plainToInstance(
+      AccommodationResponseDto,
+      {
+        ...entity,
+        photoUrls: this.storageService.getPublicUrls(entity.photoKeys),
+      },
+      {
+        excludeExtraneousValues: true,
+      },
+    );
+  }
+
+  async create(
+    createAccommodationDto: CreateAccommodationDto,
+  ): Promise<AccommodationResponseDto> {
+    const accommodation = this.accommodationRepository.create({
+      ...createAccommodationDto,
+      photoKeys: [],
+    });
+
+    const saved = await this.accommodationRepository.save(accommodation);
+
+    return this.toResponseDto(saved);
+  }
+
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResponse<AccommodationResponseDto>> {
     const page = Number(paginationDto.page) || 1;
     const pageSize = Number(paginationDto.pageSize) || 20;
-
     const skip = (page - 1) * pageSize;
 
-    const [data, total] = await this.accommodationRepository.findAndCount({
+    const [entities, total] = await this.accommodationRepository.findAndCount({
       skip,
       take: pageSize,
     });
 
+    const dtos = entities.map((entity) => this.toResponseDto(entity));
+
     return {
-      data,
+      data: dtos,
       total,
       page,
       pageSize,
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} accommodation`;
+  async findOne(id: string): Promise<AccommodationResponseDto> {
+    const entity = await this.accommodationRepository.findOneBy({ id });
+
+    if (!entity) {
+      throw new NotFoundException(`Accommodation with ID ${id} not found`);
+    }
+
+    return this.toResponseDto(entity);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} accommodation`;
+  async update(
+    id: string,
+    updateAccommodationDto: UpdateAccommodationDto,
+  ): Promise<AccommodationResponseDto> {
+    const accommodation = await this.findOneEntityOrFail(id);
+
+    Object.assign(accommodation, updateAccommodationDto);
+
+    const saved = await this.accommodationRepository.save(accommodation);
+
+    return this.toResponseDto(saved);
+  }
+
+  async remove(id: string): Promise<void> {
+    const accommodation = await this.findOneEntityOrFail(id);
+
+    if (accommodation.photoKeys.length > 0) {
+      await this.storageService.deleteFiles(accommodation.photoKeys);
+    }
+
+    await this.accommodationRepository.remove(accommodation);
+  }
+
+  async uploadPhotos(
+    id: string,
+    files: Express.Multer.File[],
+  ): Promise<AccommodationResponseDto> {
+    const accommodation = await this.findOneEntityOrFail(id);
+
+    const uploadedKeys = await this.storageService.uploadFiles(files, id);
+    accommodation.photoKeys.push(...uploadedKeys);
+
+    const saved = await this.accommodationRepository.save(accommodation);
+
+    return this.toResponseDto(saved);
+  }
+
+  private async findOneEntityOrFail(id: string): Promise<Accommodation> {
+    const accommodation = await this.accommodationRepository.findOneBy({ id });
+
+    if (!accommodation) {
+      throw new NotFoundException(`Accommodation with ID ${id} not found`);
+    }
+
+    return accommodation;
   }
 }

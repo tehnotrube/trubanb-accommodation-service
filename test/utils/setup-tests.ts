@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
 
 export let app: INestApplication;
@@ -10,6 +10,14 @@ beforeAll(async () => {
   }).compile();
 
   app = moduleFixture.createNestApplication();
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
+
   await app.init();
 }, 120000);
 
