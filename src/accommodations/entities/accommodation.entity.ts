@@ -60,9 +60,16 @@ export class Accommodation {
   @Column()
   isPerUnit: boolean;
 
+<<<<<<< HEAD
   @OneToMany(() => AccommodationRule, (rule) => rule.accommodation)
   accommodationRules: AccommodationRule[];
 
   @OneToMany(() => BlockedPeriod, (block) => block.accommodation)
+=======
+  @OneToMany(() => AccommodationRule, (rule) => rule.accommodation , { eager: true })
+  accommodationRules: AccommodationRule[];
+
+  @OneToMany(() => BlockedPeriod, (block) => block.accommodation , { eager: true })
+>>>>>>> d59c895 (feat: Modify rule creation logic and prevent rule overlap.)
   blockedPeriods: BlockedPeriod[];
 }

@@ -71,7 +71,6 @@ describe('AccommodationsService', () => {
         basePrice: 120,
         minGuests: 2,
         maxGuests: 5,
-        hostId: 'host-new',
       };
 
       const createdEntity = mockEntity({ ...dto, photoKeys: [] });
@@ -81,7 +80,7 @@ describe('AccommodationsService', () => {
       accommodationRepo.save.mockResolvedValue(savedEntity);
       storageService.getPublicUrls.mockReturnValue([]);
 
-      const result = await service.create(dto);
+      const result = await service.create(dto, 'host-123');
 
       expect(accommodationRepo.create).toHaveBeenCalledWith(
         expect.objectContaining(dto),

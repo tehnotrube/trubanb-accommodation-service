@@ -28,9 +28,6 @@ export class CreateAccommodationDto {
   @Min(1)
   maxGuests: number;
 
-  @IsString()
-  hostId: string;
-
   @IsBoolean()
   @IsOptional()
   autoApprove?: boolean;

@@ -17,7 +17,6 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AccommodationsService } from './accommodations.service';
 import { AccommodationRulesService } from './rules/accommodation-rules.service';
-import { BlockedPeriodsService } from './blocks/blocked-periods.service';
 
 import { GetAccommodationsDto } from './dto/get-accommodations.dto';
 import { CreateAccommodationDto } from './dto/create-accommodation.dto';
@@ -38,15 +37,11 @@ import { CreateRuleDto } from './dto/create-rule.dto';
 import { UpdateRuleDto } from './dto/update-rule.dto';
 import { RuleResponseDto } from './dto/rule.response.dto';
 
-import { CreateManualBlockDto } from './dto/create-manual-block.dto';
-import { BlockResponseDto } from './dto/block.response.dto';
-
 @Controller('accommodations')
 export class AccommodationsController {
   constructor(
     private readonly accommodationsService: AccommodationsService,
     private readonly rulesService: AccommodationRulesService,
-    private readonly blocksService: BlockedPeriodsService,
   ) {}
 
   @Post()
@@ -54,8 +49,9 @@ export class AccommodationsController {
   @Roles(UserRole.HOST, UserRole.ADMIN)
   async create(
     @Body() createAccommodationDto: CreateAccommodationDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<AccommodationResponseDto> {
-    return this.accommodationsService.create(createAccommodationDto);
+    return this.accommodationsService.create(createAccommodationDto, user.id);
   }
 
   @Get()
@@ -158,28 +154,5 @@ export class AccommodationsController {
   @Get(':id/rules')
   async getRules(@Param('id') id: string): Promise<RuleResponseDto[]> {
     return this.rulesService.getRules(id);
-  }
-
-  @Post(':id/blocks')
-  @UseGuards(KongJwtGuard, RolesGuard)
-  @Roles(UserRole.HOST, UserRole.ADMIN)
-  async createManualBlock(
-    @Param('id') id: string,
-    @Body() dto: CreateManualBlockDto,
-    @CurrentUser() user: AuthenticatedUser,
-  ): Promise<BlockResponseDto> {
-    return this.blocksService.createManualBlock(id, dto, user.email);
-  }
-
-  @Delete(':id/blocks/:blockId')
-  @HttpCode(204)
-  @UseGuards(KongJwtGuard, RolesGuard)
-  @Roles(UserRole.HOST, UserRole.ADMIN)
-  async deleteManualBlock(
-    @Param('id') id: string,
-    @Param('blockId') blockId: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ): Promise<void> {
-    await this.blocksService.deleteManualBlock(id, blockId, user.email);
   }
 }

@@ -29,8 +29,24 @@ export class AccommodationsService {
       {
         ...entity,
         photoUrls: this.storageService.getPublicUrls(entity.photoKeys),
+        blockedPeriods: entity.blockedPeriods?.map((b) => ({
+          id: b.id,
+          startDate: b.startDate,
+          endDate: b.endDate,
+          reason: b.reason,
+        })),
+        accommodationRules: entity.accommodationRules?.map((r) => ({
+          id: r.id,
+          startDate: r.startDate,
+          endDate: r.endDate,
+          overridePrice: r.overridePrice,
+          multiplier: r.multiplier,
+          periodType: r.periodType,
+          minStayDays: (r as any).minStayDays,
+          maxStayDays: (r as any).maxStayDays,
+        })),
       },
-      { excludeExtraneousValues: true },
+      { excludeExtraneousValues: true,  },
     );
   }
 
@@ -53,6 +69,7 @@ export class AccommodationsService {
 
   async create(
     createAccommodationDto: CreateAccommodationDto,
+    hostId: string
   ): Promise<AccommodationResponseDto> {
     if (createAccommodationDto.minGuests > createAccommodationDto.maxGuests) {
       throw new BadRequestException(
@@ -62,6 +79,7 @@ export class AccommodationsService {
 
     const accommodation = this.accommodationRepository.create({
       ...createAccommodationDto,
+      hostId,
       photoKeys: [],
     });
     const saved = await this.accommodationRepository.save(accommodation);

@@ -15,9 +15,6 @@ import { CreateRuleDto } from './dto/create-rule.dto';
 import { UpdateRuleDto } from './dto/update-rule.dto';
 import { RuleResponseDto } from './dto/rule.response.dto';
 
-import { CreateManualBlockDto } from './dto/create-manual-block.dto';
-import { BlockResponseDto } from './dto/block.response.dto';
-
 import type { AuthenticatedUser } from '.././auth/interfaces/authenticated-user.interface';
 import { UserRole } from '.././auth/guards/roles.guard';
 import { PeriodType } from './entities/accommodation-rule.entity';
@@ -51,6 +48,8 @@ describe('AccommodationsController', () => {
     isPerUnit: false,
     createdAt: new Date('2025-10-01'),
     updatedAt: new Date('2025-10-02'),
+    accommodationRules: [],
+    blockedPeriods: [],
     ...overrides,
   });
 
@@ -67,16 +66,6 @@ describe('AccommodationsController', () => {
     ...overrides,
   });
 
-  const mockBlockResponse = (
-    overrides: Partial<BlockResponseDto> = {},
-  ): BlockResponseDto => ({
-    id: 'blk_01JMOCKBLOCK001',
-    startDate: new Date('2025-11-10'),
-    endDate: new Date('2025-11-15'),
-    reason: 'MANUAL',
-    notes: 'Host private use',
-    ...overrides,
-  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -134,7 +123,6 @@ describe('AccommodationsController', () => {
         basePrice: 65.0,
         minGuests: 1,
         maxGuests: 3,
-        hostId: 'hst_01JMOCKEDHOST001',
         amenities: ['WiFi'],
         autoApprove: false,
         isPerUnit: false,
@@ -146,9 +134,9 @@ describe('AccommodationsController', () => {
       });
       mockAccommodationsService.create.mockResolvedValue(expected);
 
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, mockUser());
 
-      expect(mockAccommodationsService.create).toHaveBeenCalledWith(createDto);
+      expect(mockAccommodationsService.create).toHaveBeenCalledWith(createDto, mockUser().id);
       expect(result).toEqual(expected);
     });
   });
@@ -377,58 +365,6 @@ describe('AccommodationsController', () => {
         'acc_01JMOCKEDACCOM001',
       );
       expect(result).toEqual(rules);
-    });
-  });
-
-  // ────────────────────────────────────────────────────────────────
-  //                        MANUAL BLOCKS
-  // ────────────────────────────────────────────────────────────────
-
-  describe('createManualBlock', () => {
-    it('should create manual block and return BlockResponseDto', async () => {
-      const createDto: CreateManualBlockDto = {
-        startDate: new Date('2025-11-20'),
-        endDate: new Date('2025-11-27'),
-        notes: 'Owner staying',
-      };
-
-      const expected: BlockResponseDto = mockBlockResponse({
-        ...createDto,
-        id: 'blk_new_777',
-      });
-
-      mockBlocksService.createManualBlock.mockResolvedValue(expected);
-
-      const result = await controller.createManualBlock(
-        'acc_01JMOCKEDACCOM001',
-        createDto,
-        mockUser(),
-      );
-
-      expect(mockBlocksService.createManualBlock).toHaveBeenCalledWith(
-        'acc_01JMOCKEDACCOM001',
-        createDto,
-        'test.host@example.com',
-      );
-      expect(result).toEqual(expected);
-    });
-  });
-
-  describe('deleteManualBlock', () => {
-    it('should call deleteManualBlock on service', async () => {
-      mockBlocksService.deleteManualBlock.mockResolvedValue(undefined);
-
-      await controller.deleteManualBlock(
-        'acc_01JMOCKEDACCOM001',
-        'blk_01JMOCKBLOCK001',
-        mockUser(),
-      );
-
-      expect(mockBlocksService.deleteManualBlock).toHaveBeenCalledWith(
-        'acc_01JMOCKEDACCOM001',
-        'blk_01JMOCKBLOCK001',
-        'test.host@example.com',
-      );
     });
   });
 });
