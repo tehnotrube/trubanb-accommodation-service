@@ -12,6 +12,7 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AccommodationsService } from './accommodations.service';
@@ -25,6 +26,13 @@ import { ImageFileValidator } from './validators/image-file.validator';
 import { RolesGuard, UserRole } from '../auth/guards/roles.guard';
 import { KongJwtGuard } from '../auth/guards/kong-jwt.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateRuleDto } from './dto/create-rule.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { RuleResponseDto } from './dto/rule.response.dto';
+import { UpdateRuleDto } from './dto/update-rule.dto';
+import { CreateManualBlockDto } from './dto/create-manual-block.dto';
+import { BlockResponseDto } from './dto/block.response.dto';
 
 @Controller('accommodations')
 export class AccommodationsController {
@@ -99,5 +107,68 @@ export class AccommodationsController {
   ): Promise<AccommodationResponseDto> {
     const updated = await this.accommodationsService.uploadPhotos(id, files);
     return updated;
+  }
+
+  @Post(':id/rules')
+  @UseGuards(KongJwtGuard, RolesGuard)
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async createRule(
+    @Param('id') id: string,
+    @Body() dto: CreateRuleDto,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<RuleResponseDto> {
+    return this.accommodationsService.createRule(id, dto, user.email);
+  }
+
+  @Patch(':id/rules/:ruleId')
+  @UseGuards(KongJwtGuard, RolesGuard)
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async updateRule(
+    @Param('id') id: string,
+    @Param('ruleId') ruleId: string,
+    @Body() dto: UpdateRuleDto,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<RuleResponseDto> {
+    return this.accommodationsService.updateRule(id, ruleId, dto, user.email);
+  }
+
+  @Delete(':id/rules/:ruleId')
+  @HttpCode(204)
+  @UseGuards(KongJwtGuard, RolesGuard)
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async deleteRule(
+    @Param('id') id: string,
+    @Param('ruleId') ruleId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.accommodationsService.deleteRule(id, ruleId, user.email);
+  }
+
+  @Get(':id/rules')
+  async getRules(@Param('id') id: string): Promise<RuleResponseDto[]> {
+    return this.accommodationsService.getRules(id);
+  }
+
+  @Post(':id/blocks')
+  @UseGuards(KongJwtGuard, RolesGuard)
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async createManualBlock(
+    @Param('id') id: string,
+    @Body() dto: CreateManualBlockDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<BlockResponseDto> {
+    return this.accommodationsService.createManualBlock(id, dto, user.email);
+  }
+
+  @Delete(':id/blocks/:blockId')
+  @HttpCode(204)
+  @UseGuards(KongJwtGuard, RolesGuard)
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async deleteManualBlock(
+    @Param('id') id: string,
+    @Param('blockId') blockId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.accommodationsService.deleteManualBlock(id, blockId, user.email);
   }
 }

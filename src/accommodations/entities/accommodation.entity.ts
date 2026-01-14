@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { BlockedPeriod } from './blocked-period.entity';
+import { AccommodationRule } from './accommodation-rule.entity';
 
 @Entity('accommodations')
 export class Accommodation {
@@ -53,4 +56,10 @@ export class Accommodation {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => AccommodationRule, (rule) => rule.accommodation)
+  calendarPeriods: AccommodationRule[];
+
+  @OneToMany(() => BlockedPeriod, (block) => block.accommodation)
+  blockedPeriods: BlockedPeriod[];
 }
