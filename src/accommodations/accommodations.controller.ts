@@ -115,7 +115,7 @@ export class AccommodationsController {
   async createRule(
     @Param('id') id: string,
     @Body() dto: CreateRuleDto,
-    @CurrentUser() user: AuthenticatedUser
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<RuleResponseDto> {
     return this.accommodationsService.createRule(id, dto, user.email);
   }
@@ -127,7 +127,7 @@ export class AccommodationsController {
     @Param('id') id: string,
     @Param('ruleId') ruleId: string,
     @Body() dto: UpdateRuleDto,
-    @CurrentUser() user: AuthenticatedUser
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<RuleResponseDto> {
     return this.accommodationsService.updateRule(id, ruleId, dto, user.email);
   }

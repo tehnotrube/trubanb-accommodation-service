@@ -57,8 +57,11 @@ export class Accommodation {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  @Column()
+  isPerUnit: boolean;
+
   @OneToMany(() => AccommodationRule, (rule) => rule.accommodation)
-  calendarPeriods: AccommodationRule[];
+  accommodationRules: AccommodationRule[];
 
   @OneToMany(() => BlockedPeriod, (block) => block.accommodation)
   blockedPeriods: BlockedPeriod[];

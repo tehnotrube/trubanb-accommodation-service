@@ -5,7 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import {
+  Repository,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Not,
+  FindOptionsWhere,
+} from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Accommodation } from './entities/accommodation.entity';
 import { AccommodationRule } from './entities/accommodation-rule.entity';
@@ -126,6 +132,18 @@ export class AccommodationsService {
     const accommodation = await this.findOneEntityOrFail(accommodationId);
     this.checkHostOwnership(accommodation, hostEmail);
 
+    await this.checkNoActiveReservations(
+      accommodationId,
+      dto.startDate,
+      dto.endDate,
+    );
+
+    await this.checkOverlappingRules(
+      accommodationId,
+      dto.startDate,
+      dto.endDate,
+    );
+
     const rule = this.ruleRepository.create({
       ...dto,
       accommodationId,
@@ -152,6 +170,22 @@ export class AccommodationsService {
     const accommodation = await this.findOneEntityOrFail(accommodationId);
     this.checkHostOwnership(accommodation, hostEmail);
 
+    const effectiveStart = dto.startDate ?? rule.startDate;
+    const effectiveEnd = dto.endDate ?? rule.endDate;
+
+    await this.checkNoActiveReservations(
+      accommodationId,
+      effectiveStart,
+      effectiveEnd,
+    );
+
+    await this.checkOverlappingRules(
+      accommodationId,
+      effectiveStart,
+      effectiveEnd,
+      rule.id,
+    );
+
     Object.assign(rule, dto);
     const updated = await this.ruleRepository.save(rule);
     return plainToInstance(RuleResponseDto, updated);
@@ -172,6 +206,12 @@ export class AccommodationsService {
     const accommodation = await this.findOneEntityOrFail(accommodationId);
     this.checkHostOwnership(accommodation, hostEmail);
 
+    await this.checkNoActiveReservations(
+      accommodationId,
+      rule.startDate,
+      rule.endDate,
+    );
+
     await this.ruleRepository.remove(rule);
   }
 
@@ -191,7 +231,11 @@ export class AccommodationsService {
     const accommodation = await this.findOneEntityOrFail(accommodationId);
     this.checkHostOwnership(accommodation, hostEmail);
 
-    await this.checkNoActiveReservations(accommodationId, dto.startDate, dto.endDate);
+    await this.checkNoActiveReservations(
+      accommodationId,
+      dto.startDate,
+      dto.endDate,
+    );
 
     const block = this.blockedPeriodRepository.create({
       ...dto,
@@ -223,7 +267,10 @@ export class AccommodationsService {
     await this.blockedPeriodRepository.remove(block);
   }
 
-  private checkHostOwnership(accommodation: Accommodation, hostEmail: string): void {
+  private checkHostOwnership(
+    accommodation: Accommodation,
+    hostEmail: string,
+  ): void {
     if (accommodation.hostId !== hostEmail) {
       throw new ForbiddenException('You do not own this accommodation');
     }
@@ -246,6 +293,31 @@ export class AccommodationsService {
     if (overlapping > 0) {
       throw new BadRequestException(
         'Cannot modify this period because it contains active reservations',
+      );
+    }
+  }
+
+  private async checkOverlappingRules(
+    accommodationId: string,
+    startDate: Date,
+    endDate: Date,
+    excludeRuleId?: string,
+  ): Promise<void> {
+    const where: FindOptionsWhere<AccommodationRule> = {
+      accommodationId,
+      startDate: LessThanOrEqual(endDate),
+      endDate: MoreThanOrEqual(startDate),
+    };
+
+    if (excludeRuleId) {
+      where.id = Not(excludeRuleId);
+    }
+
+    const overlapping = await this.ruleRepository.count({ where });
+
+    if (overlapping > 0) {
+      throw new BadRequestException(
+        'A rule already exists for this accommodation in the selected period',
       );
     }
   }

@@ -95,6 +95,7 @@ describe('Accommodations (e2e)', () => {
         maxGuests: 3,
         hostId: 'host-new-789',
         basePrice: 95.5,
+        isPerUnit: true
       };
 
       const response = await request(app.getHttpServer() as App)

@@ -5,6 +5,8 @@ import { AccommodationsService } from './accommodations.service';
 import { Accommodation } from './entities/accommodation.entity';
 import { StorageService } from '../storage/storage.service';
 import { NotFoundException } from '@nestjs/common';
+import { AccommodationRule } from './entities/accommodation-rule.entity';
+import { BlockedPeriod } from './entities/blocked-period.entity';
 
 describe('AccommodationsService', () => {
   let service: AccommodationsService;
@@ -36,6 +38,26 @@ describe('AccommodationsService', () => {
         AccommodationsService,
         {
           provide: getRepositoryToken(Accommodation),
+          useValue: {
+            create: jest.fn(),
+            save: jest.fn(),
+            findAndCount: jest.fn(),
+            findOneBy: jest.fn(),
+            remove: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(AccommodationRule),
+          useValue: {
+            create: jest.fn(),
+            save: jest.fn(),
+            findAndCount: jest.fn(),
+            findOneBy: jest.fn(),
+            remove: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(BlockedPeriod),
           useValue: {
             create: jest.fn(),
             save: jest.fn(),

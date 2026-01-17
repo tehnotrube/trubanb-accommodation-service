@@ -1,12 +1,24 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Accommodation } from "./accommodation.entity";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Accommodation } from './accommodation.entity';
+
+export type PeriodType = 'SEASONAL' | 'WEEKEND' | 'HOLIDAY' | 'CUSTOM';
 
 @Entity('accommodation_rules')
 export class AccommodationRule {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Accommodation, (accommodation) => accommodation.accommodationRules, { onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => Accommodation,
+    (accommodation) => accommodation.accommodationRules,
+    { onDelete: 'CASCADE' },
+  )
   @JoinColumn({ name: 'accommodationId' })
   accommodation: Accommodation;
 
@@ -22,9 +34,9 @@ export class AccommodationRule {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   overridePrice: number | null;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 }) 
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
   multiplier: number;
 
   @Column({ nullable: true })
-  periodType: string;
+  periodType: PeriodType;
 }

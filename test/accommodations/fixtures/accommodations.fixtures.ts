@@ -1,4 +1,6 @@
-export const accommodationsFixture = [
+import { Accommodation } from "../../../src/accommodations/entities/accommodation.entity";
+
+export const accommodationsFixture: Partial<Accommodation>[] = [
   {
     name: 'Test Hotel',
     location: 'Test City',
@@ -9,6 +11,9 @@ export const accommodationsFixture = [
     hostId: 'host-123',
     autoApprove: true,
     basePrice: 100.0,
+    isPerUnit: true,
+    accommodationRules: [],
+    blockedPeriods: []
   },
   {
     name: 'Beach House',
@@ -20,5 +25,8 @@ export const accommodationsFixture = [
     hostId: 'host-456',
     autoApprove: false,
     basePrice: 150.0,
+    isPerUnit: true,
+    accommodationRules: [],
+    blockedPeriods: []
   },
 ];

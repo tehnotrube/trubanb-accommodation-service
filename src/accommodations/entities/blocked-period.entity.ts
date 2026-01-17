@@ -1,12 +1,22 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Accommodation } from "./accommodation.entity";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Accommodation } from './accommodation.entity';
 
 @Entity('blocked_periods')
 export class BlockedPeriod {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Accommodation, (accommodation) => accommodation.blockedPeriods, { onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => Accommodation,
+    (accommodation) => accommodation.blockedPeriods,
+    { onDelete: 'CASCADE' },
+  )
   @JoinColumn({ name: 'accommodationId' })
   accommodation: Accommodation;
 
