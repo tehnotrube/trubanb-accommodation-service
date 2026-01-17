@@ -34,7 +34,7 @@ export const getTypeOrmConfig = (
     migrationsTableName: 'migrations',
     migrationsRun: options.runMigrations ?? process.env.ENV !== 'test',
     synchronize: false,
-    logging: process.env.ENV !== 'production',
+    logging: false,
     extra: { connectionLimit: 10 },
   };
 

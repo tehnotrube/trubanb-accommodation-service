@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
@@ -7,8 +12,8 @@ import { AccommodationResponseDto } from './dto/accommodation.response.dto';
 import { CreateAccommodationDto } from './dto/create-accommodation.dto';
 import { UpdateAccommodationDto } from './dto/update-accommodation.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { StorageService } from '../storage/storage.service';
 import { PaginatedResponse } from '../common/types/PaginatedResponse';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class AccommodationsService {
@@ -25,22 +30,41 @@ export class AccommodationsService {
         ...entity,
         photoUrls: this.storageService.getPublicUrls(entity.photoKeys),
       },
-      {
-        excludeExtraneousValues: true,
-      },
+      { excludeExtraneousValues: true },
     );
+  }
+
+  private checkHostOwnership(
+    accommodation: Accommodation,
+    hostEmail: string,
+  ): void {
+    if (accommodation.hostId !== hostEmail) {
+      throw new ForbiddenException('You do not own this accommodation');
+    }
+  }
+
+  private async findOneEntityOrFail(id: string): Promise<Accommodation> {
+    const accommodation = await this.accommodationRepository.findOneBy({ id });
+    if (!accommodation) {
+      throw new NotFoundException(`Accommodation with ID ${id} not found`);
+    }
+    return accommodation;
   }
 
   async create(
     createAccommodationDto: CreateAccommodationDto,
   ): Promise<AccommodationResponseDto> {
+    if (createAccommodationDto.minGuests > createAccommodationDto.maxGuests) {
+      throw new BadRequestException(
+        'minGuests cannot be greater than maxGuests',
+      );
+    }
+
     const accommodation = this.accommodationRepository.create({
       ...createAccommodationDto,
       photoKeys: [],
     });
-
     const saved = await this.accommodationRepository.save(accommodation);
-
     return this.toResponseDto(saved);
   }
 
@@ -58,68 +82,48 @@ export class AccommodationsService {
 
     const dtos = entities.map((entity) => this.toResponseDto(entity));
 
-    return {
-      data: dtos,
-      total,
-      page,
-      pageSize,
-    };
+    return { data: dtos, total, page, pageSize };
   }
 
   async findOne(id: string): Promise<AccommodationResponseDto> {
-    const entity = await this.accommodationRepository.findOneBy({ id });
-
-    if (!entity) {
-      throw new NotFoundException(`Accommodation with ID ${id} not found`);
-    }
-
+    const entity = await this.findOneEntityOrFail(id);
     return this.toResponseDto(entity);
   }
 
   async update(
     id: string,
     updateAccommodationDto: UpdateAccommodationDto,
+    hostEmail: string, // ← added for ownership check
   ): Promise<AccommodationResponseDto> {
     const accommodation = await this.findOneEntityOrFail(id);
+    this.checkHostOwnership(accommodation, hostEmail);
 
     Object.assign(accommodation, updateAccommodationDto);
-
     const saved = await this.accommodationRepository.save(accommodation);
-
     return this.toResponseDto(saved);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, hostEmail: string): Promise<void> {
     const accommodation = await this.findOneEntityOrFail(id);
+    this.checkHostOwnership(accommodation, hostEmail);
 
     if (accommodation.photoKeys.length > 0) {
       await this.storageService.deleteFiles(accommodation.photoKeys);
     }
-
     await this.accommodationRepository.remove(accommodation);
   }
 
   async uploadPhotos(
     id: string,
     files: Express.Multer.File[],
+    hostEmail: string,
   ): Promise<AccommodationResponseDto> {
     const accommodation = await this.findOneEntityOrFail(id);
+    this.checkHostOwnership(accommodation, hostEmail);
 
     const uploadedKeys = await this.storageService.uploadFiles(files, id);
     accommodation.photoKeys.push(...uploadedKeys);
-
     const saved = await this.accommodationRepository.save(accommodation);
-
     return this.toResponseDto(saved);
-  }
-
-  private async findOneEntityOrFail(id: string): Promise<Accommodation> {
-    const accommodation = await this.accommodationRepository.findOneBy({ id });
-
-    if (!accommodation) {
-      throw new NotFoundException(`Accommodation with ID ${id} not found`);
-    }
-
-    return accommodation;
   }
 }

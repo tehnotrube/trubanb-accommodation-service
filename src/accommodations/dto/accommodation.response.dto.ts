@@ -55,4 +55,8 @@ export class AccommodationResponseDto {
   @ApiProperty()
   @Expose()
   updatedAt: Date;
+
+  @ApiProperty()
+  @Expose()
+  isPerUnit: boolean;
 }

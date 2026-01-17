@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
 
 export let app: INestApplication;
@@ -17,6 +17,8 @@ beforeAll(async () => {
       transform: true,
     }),
   );
+
+  app.useLogger(new Logger('E2E-TEST', { timestamp: true }));
 
   await app.init();
 }, 120000);

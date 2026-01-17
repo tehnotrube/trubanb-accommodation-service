@@ -38,4 +38,7 @@ export class CreateAccommodationDto {
   @IsNumber()
   @Min(0)
   basePrice: number;
+
+  @IsBoolean()
+  isPerUnit?: boolean;
 }

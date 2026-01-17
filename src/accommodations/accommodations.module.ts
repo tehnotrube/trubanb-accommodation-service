@@ -1,13 +1,30 @@
 import { Module } from '@nestjs/common';
-import { AccommodationsService } from './accommodations.service';
-import { AccommodationsController } from './accommodations.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccommodationsController } from './accommodations.controller';
+import { AccommodationsService } from './accommodations.service';
+import { BlockedPeriodsService } from './blocks/blocked-periods.service';
 import { Accommodation } from './entities/accommodation.entity';
-import { StorageModule } from '../storage/storage.module';
+import { AccommodationRule } from './entities/accommodation-rule.entity';
+import { BlockedPeriod } from './entities/blocked-period.entity';
+import { StorageService } from '../storage/storage.service';
+import { AccommodationRulesService } from './rules/accommodation-rules.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Accommodation]), StorageModule],
+  imports: [
+    TypeOrmModule.forFeature([Accommodation, AccommodationRule, BlockedPeriod]),
+  ],
   controllers: [AccommodationsController],
-  providers: [AccommodationsService],
+  providers: [
+    AccommodationsService,
+    AccommodationRulesService,
+    BlockedPeriodsService,
+    StorageService,
+    AccommodationRulesService,
+  ],
+  exports: [
+    AccommodationsService,
+    AccommodationRulesService,
+    BlockedPeriodsService,
+  ],
 })
 export class AccommodationsModule {}
