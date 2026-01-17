@@ -54,6 +54,12 @@ export class AccommodationsService {
   async create(
     createAccommodationDto: CreateAccommodationDto,
   ): Promise<AccommodationResponseDto> {
+    if (createAccommodationDto.minGuests > createAccommodationDto.maxGuests) {
+      throw new BadRequestException(
+        'minGuests cannot be greater than maxGuests',
+      );
+    }
+
     const accommodation = this.accommodationRepository.create({
       ...createAccommodationDto,
       photoKeys: [],
@@ -108,8 +114,12 @@ export class AccommodationsService {
   async uploadPhotos(
     id: string,
     files: Express.Multer.File[],
+    hostEmail: string,
   ): Promise<AccommodationResponseDto> {
     const accommodation = await this.findOneEntityOrFail(id);
+
+    this.checkHostOwnership(accommodation, hostEmail);
+
     const uploadedKeys = await this.storageService.uploadFiles(files, id);
     accommodation.photoKeys.push(...uploadedKeys);
     const saved = await this.accommodationRepository.save(accommodation);
@@ -145,9 +155,13 @@ export class AccommodationsService {
     );
 
     const rule = this.ruleRepository.create({
-      ...dto,
+      accommodation: { id: accommodationId },
       accommodationId,
+      startDate: dto.startDate,
+      endDate: dto.endDate,
+      overridePrice: dto.overridePrice,
       multiplier: dto.multiplier ?? 1.0,
+      periodType: dto.periodType,
     });
 
     const saved = await this.ruleRepository.save(rule);
@@ -238,8 +252,9 @@ export class AccommodationsService {
     );
 
     const block = this.blockedPeriodRepository.create({
-      ...dto,
+      accommodation: { id: accommodationId },
       accommodationId,
+      ...dto,
       reason: 'MANUAL',
     });
 

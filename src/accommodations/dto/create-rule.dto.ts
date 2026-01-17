@@ -1,9 +1,37 @@
+import { Type } from 'class-transformer';
+import { IsDate, IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
+import { PeriodType } from '../entities/accommodation-rule.entity';
+
 export class CreateRuleDto {
+  @Type(() => Date)
+  @IsDate()
   startDate: Date;
+
+  @Type(() => Date)
+  @IsDate()
   endDate: Date;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   overridePrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   multiplier?: number = 1.0;
-  periodType?: 'SEASONAL' | 'WEEKEND' | 'HOLIDAY' | 'CUSTOM';
+
+  @IsOptional()
+  @IsEnum(PeriodType)
+  periodType?: PeriodType;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
   minStayDays?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
   maxStayDays?: number;
 }

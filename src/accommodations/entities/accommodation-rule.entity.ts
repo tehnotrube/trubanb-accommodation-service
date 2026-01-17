@@ -7,7 +7,12 @@ import {
 } from 'typeorm';
 import { Accommodation } from './accommodation.entity';
 
-export type PeriodType = 'SEASONAL' | 'WEEKEND' | 'HOLIDAY' | 'CUSTOM';
+export enum PeriodType {
+  SEASONAL = 'SEASONAL',
+  WEEKEND = 'WEEKEND',
+  HOLIDAY = 'HOLIDAY',
+  CUSTOM = 'CUSTOM',
+}
 
 @Entity('accommodation_rules')
 export class AccommodationRule {

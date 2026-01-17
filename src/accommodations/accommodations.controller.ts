@@ -104,8 +104,13 @@ export class AccommodationsController {
       }),
     )
     files: Express.Multer.File[],
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<AccommodationResponseDto> {
-    const updated = await this.accommodationsService.uploadPhotos(id, files);
+    const updated = await this.accommodationsService.uploadPhotos(
+      id,
+      files,
+      user.email,
+    );
     return updated;
   }
 
