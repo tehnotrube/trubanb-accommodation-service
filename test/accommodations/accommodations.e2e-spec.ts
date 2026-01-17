@@ -9,77 +9,87 @@ import {
 } from '../utils/auth/headers.utils';
 import { app } from '../utils/setup-tests';
 import { PeriodType } from '../../src/accommodations/entities/accommodation-rule.entity';
+import { App } from 'supertest/types';
+import { PaginatedResponse } from 'src/common/types/PaginatedResponse';
+import { AccommodationResponseDto } from 'src/accommodations/dto/accommodation.response.dto';
+import { RuleResponseDto } from 'src/accommodations/dto/rule.response.dto';
+import { BlockResponseDto } from 'src/accommodations/dto/block.response.dto';
 
 describe('Accommodations (e2e)', () => {
   let dataSource: DataSource;
+  const seededAccommodations: Accommodation[] = [];
 
   beforeAll(async () => {
     dataSource = app.get(DataSource);
+
+    // Seed all fixture accommodations once
+    for (const fixture of accommodationsFixture) {
+      const acc = await dataSource.manager.save(Accommodation, { ...fixture });
+      seededAccommodations.push(acc);
+    }
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  beforeEach(async () => {
-    await dataSource.query('BEGIN;');
-    await dataSource.manager.save(Accommodation, accommodationsFixture);
-  });
-
-  afterEach(async () => {
-    await dataSource.query('ROLLBACK;');
-  });
-
-  describe('GET /accommodations', () => {
+  describe('GET /accommodations - list & pagination', () => {
     it('should return paginated list with default values', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as App)
         .get('/accommodations')
         .expect(200);
 
-      expect(res.body.data).toHaveLength(accommodationsFixture.length);
-      expect(res.body.total).toBe(accommodationsFixture.length);
-      expect(res.body.page).toBe(1);
-      expect(res.body.pageSize).toBe(20);
-      expect(res.body.data[0]).not.toHaveProperty('photoKeys');
+      const body = res.body as PaginatedResponse<AccommodationResponseDto>;
+
+      expect(body.data).toHaveLength(accommodationsFixture.length);
+      expect(body.total).toBe(accommodationsFixture.length);
+      expect(body.page).toBe(1);
+      expect(body.pageSize).toBe(20);
+      expect(body.data[0]).not.toHaveProperty('photoKeys');
     });
 
     it('should respect custom page and pageSize', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as App)
         .get('/accommodations?page=1&pageSize=1')
         .expect(200);
 
-      expect(res.body.data).toHaveLength(1);
-      expect(res.body.total).toBe(accommodationsFixture.length);
+      const body = res.body as PaginatedResponse<AccommodationResponseDto>;
+
+      expect(body.data).toHaveLength(1);
+      expect(body.total).toBe(accommodationsFixture.length);
     });
 
     it('should return empty data when page is out of range', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as App)
         .get('/accommodations?page=999&pageSize=10')
         .expect(200);
 
-      expect(res.body.data).toHaveLength(0);
-      expect(res.body.total).toBe(accommodationsFixture.length);
+      const body = res.body as PaginatedResponse<AccommodationResponseDto>;
+
+      expect(body.data).toHaveLength(0);
+      expect(body.total).toBe(accommodationsFixture.length);
     });
   });
 
   describe('GET /accommodations/:id', () => {
     it('should return accommodation by id', async () => {
-      const accs = await dataSource.getRepository(Accommodation).find();
-      const id = accs[0].id;
+      const id = seededAccommodations[0].id;
 
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as App)
         .get(`/accommodations/${id}`)
         .expect(200);
 
-      expect(res.body.id).toBe(id);
-      expect(res.body.name).toBe(accommodationsFixture[0].name);
-      expect(res.body.location).toBe(accommodationsFixture[0].location);
-      expect(res.body).toHaveProperty('photoUrls');
-      expect(res.body).not.toHaveProperty('photoKeys');
+      const body = res.body as AccommodationResponseDto;
+
+      expect(body.id).toBe(id);
+      expect(body.name).toBe(accommodationsFixture[0].name);
+      expect(body.location).toBe(accommodationsFixture[0].location);
+      expect(body).toHaveProperty('photoUrls');
+      expect(body).not.toHaveProperty('photoKeys');
     });
 
     it('should return 404 for non-existent id', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .get('/accommodations/00000000-0000-0000-0000-000000000000')
         .expect(404);
     });
@@ -99,32 +109,36 @@ describe('Accommodations (e2e)', () => {
     };
 
     it('should create accommodation', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await request(app.getHttpServer() as App)
         .post('/accommodations')
         .set(TEST_HOST_TOKEN_HEADERS)
         .send(validPayload)
         .expect(201);
 
-      expect(res.body).toMatchObject({
+      const body = res.body as AccommodationResponseDto;
+
+      expect(body).toMatchObject({
         name: validPayload.name,
         location: validPayload.location,
-        amenities: expect.arrayContaining(validPayload.amenities),
+        amenities: expect.arrayContaining(validPayload.amenities) as string[],
         photoUrls: [],
         basePrice: validPayload.basePrice,
         autoApprove: validPayload.autoApprove,
       });
-      expect(res.body.id).toMatch(/^[0-9a-f-]{36}$/);
+      expect(body.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
     });
 
     it('should reject unauthenticated request', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/accommodations')
         .send(validPayload)
         .expect(401);
     });
 
     it('should reject guest role', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/accommodations')
         .set(TEST_GUEST_TOKEN_HEADERS)
         .send(validPayload)
@@ -132,7 +146,7 @@ describe('Accommodations (e2e)', () => {
     });
 
     it('should reject negative price', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/accommodations')
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({ ...validPayload, basePrice: -10 })
@@ -140,7 +154,7 @@ describe('Accommodations (e2e)', () => {
     });
 
     it('should reject minGuests greater than maxGuests', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/accommodations')
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({ ...validPayload, minGuests: 5, maxGuests: 3 })
@@ -149,29 +163,36 @@ describe('Accommodations (e2e)', () => {
   });
 
   describe('PUT /accommodations/:id', () => {
-    it('should update accommodation', async () => {
-      const accs = await dataSource.getRepository(Accommodation).find();
-      const id = accs[0].id;
+    let testAccommodation: Accommodation;
 
+    beforeEach(async () => {
+      testAccommodation = await dataSource.manager.save(Accommodation, {
+        ...accommodationsFixture[0],
+      });
+    });
+
+    it('should update accommodation', async () => {
       const updateData = {
         name: 'Renamed Wonderful Place',
         basePrice: 220.0,
         autoApprove: true,
       };
 
-      const res = await request(app.getHttpServer())
-        .put(`/accommodations/${id}`)
+      const res = await request(app.getHttpServer() as App)
+        .put(`/accommodations/${testAccommodation.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send(updateData)
         .expect(200);
 
-      expect(res.body.name).toBe(updateData.name);
-      expect(res.body.basePrice).toBe(updateData.basePrice);
-      expect(res.body.autoApprove).toBe(true);
+      const body = res.body as AccommodationResponseDto;
+
+      expect(body.name).toBe(updateData.name);
+      expect(body.basePrice).toBe(updateData.basePrice);
+      expect(body.autoApprove).toBe(true);
     });
 
     it('should return 404 for non-existent id', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .put('/accommodations/00000000-0000-0000-0000-000000000000')
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({ name: 'Test' })
@@ -180,27 +201,39 @@ describe('Accommodations (e2e)', () => {
   });
 
   describe('DELETE /accommodations/:id', () => {
-    it('should delete accommodation', async () => {
-      const accs = await dataSource.getRepository(Accommodation).find();
-      const id = accs[0].id;
+    let testAccommodation: Accommodation;
 
-      await request(app.getHttpServer())
-        .delete(`/accommodations/${id}`)
+    beforeEach(async () => {
+      testAccommodation = await dataSource.manager.save(Accommodation, {
+        ...accommodationsFixture[0],
+      });
+    });
+
+    it('should delete accommodation', async () => {
+      await request(app.getHttpServer() as App)
+        .delete(`/accommodations/${testAccommodation.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(204);
 
-      const exists = await dataSource.getRepository(Accommodation).findOneBy({ id });
+      const exists = await dataSource
+        .getRepository(Accommodation)
+        .findOneBy({ id: testAccommodation.id });
       expect(exists).toBeNull();
     });
   });
 
   describe('POST /accommodations/:id/photos', () => {
-    it('should upload single photo', async () => {
-      const accs = await dataSource.getRepository(Accommodation).find();
-      const id = accs[0].id;
+    let testAccommodation: Accommodation;
 
-      const res = await request(app.getHttpServer())
-        .post(`/accommodations/${id}/photos`)
+    beforeEach(async () => {
+      testAccommodation = await dataSource.manager.save(Accommodation, {
+        ...accommodationsFixture[0],
+      });
+    });
+
+    it('should upload single photo', async () => {
+      const res = await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/photos`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('fake-image'), {
           filename: 'living-room.jpg',
@@ -208,16 +241,15 @@ describe('Accommodations (e2e)', () => {
         })
         .expect(200);
 
-      expect(res.body.photoUrls).toHaveLength(1);
-      expect(res.body.photoUrls[0]).toContain('http');
+      const body = res.body as AccommodationResponseDto;
+
+      expect(body.photoUrls).toHaveLength(1);
+      expect(body.photoUrls![0]).toContain('http');
     });
 
     it('should upload multiple photos', async () => {
-      const accs = await dataSource.getRepository(Accommodation).find();
-      const id = accs[0].id;
-
-      const res = await request(app.getHttpServer())
-        .post(`/accommodations/${id}/photos`)
+      const res = await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/photos`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('fake1'), {
           filename: 'test1.jpg',
@@ -229,15 +261,14 @@ describe('Accommodations (e2e)', () => {
         })
         .expect(200);
 
-      expect(res.body.photoUrls).toHaveLength(2);
+      const body = res.body as AccommodationResponseDto;
+
+      expect(body.photoUrls).toHaveLength(2);
     });
 
     it('should reject non-image file', async () => {
-      const accs = await dataSource.getRepository(Accommodation).find();
-      const id = accs[0].id;
-
-      await request(app.getHttpServer())
-        .post(`/accommodations/${id}/photos`)
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/photos`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('hello'), {
           filename: 'document.pdf',
@@ -247,7 +278,7 @@ describe('Accommodations (e2e)', () => {
     });
 
     it('should return 404 for non-existent accommodation', async () => {
-      await request(app.getHttpServer())
+      await request(app.getHttpServer() as App)
         .post('/accommodations/00000000-0000-0000-0000-000000000000/photos')
         .set(TEST_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('fake'), 'test.jpg')
@@ -255,11 +286,8 @@ describe('Accommodations (e2e)', () => {
     });
 
     it('should forbid upload by different host', async () => {
-      const accs = await dataSource.getRepository(Accommodation).find();
-      const id = accs[0].id;
-
-      await request(app.getHttpServer())
-        .post(`/accommodations/${id}/photos`)
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/photos`)
         .set(TEST_OTHER_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('fake'), 'test.jpg')
         .expect(403);
@@ -267,59 +295,73 @@ describe('Accommodations (e2e)', () => {
   });
 
   describe('Rules', () => {
-    let accId: string;
+    let testAccommodation: Accommodation;
 
     beforeEach(async () => {
-      // No need for separate BEGIN since parent beforeEach already does it
-      const accommodation = await dataSource.getRepository(Accommodation).findOne({ where: {} });
-      accId = accommodation!.id;
+      testAccommodation = await dataSource.manager.save(Accommodation, {
+        ...accommodationsFixture[0],
+      });
     });
 
     it('should create rule', async () => {
       const payload = {
-      startDate: '2026-01-01', 
-      endDate: '2026-01-10',
+        startDate: '2026-01-01',
+        endDate: '2026-01-10',
         overridePrice: 150,
         multiplier: 1.4,
         periodType: PeriodType.SEASONAL,
       };
 
-      const res = await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      const res = await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send(payload)
         .expect(201);
 
-      expect(res.body.multiplier).toBe("1.40");
-      expect(res.body.periodType).toBe(payload.periodType);
+      const body = res.body as RuleResponseDto;
+
+      expect(body.multiplier).toBe('1.40');
+      expect(body.periodType).toBe(payload.periodType);
     });
 
     it('should reject overlapping rule', async () => {
-      await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2027-01-15',
           endDate: '2027-02-15',
           multiplier: 1.3,
-          periodType: PeriodType.SEASONAL
+          periodType: PeriodType.SEASONAL,
         })
         .expect(201);
 
-      await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2027-01-01',
           endDate: '2027-01-31',
-          multiplier: 1.0
+          multiplier: 1.0,
+        })
+        .expect(400);
+    });
+
+    it('should reject rule with endDate before startDate', async () => {
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .set(TEST_HOST_TOKEN_HEADERS)
+        .send({
+          startDate: '2025-12-20',
+          endDate: '2025-12-10',
+          multiplier: 1.0,
         })
         .expect(400);
     });
 
     it('should update rule', async () => {
-      const create = await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      const create = await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-07-01',
@@ -328,21 +370,23 @@ describe('Accommodations (e2e)', () => {
         })
         .expect(201);
 
-      const ruleId = create.body.id;
+      const rule = create.body as RuleResponseDto;
 
-      const updateRes = await request(app.getHttpServer())
-        .patch(`/accommodations/${accId}/rules/${ruleId}`)
+      const updateRes = await request(app.getHttpServer() as App)
+        .patch(`/accommodations/${testAccommodation.id}/rules/${rule.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({ multiplier: 1.65, overridePrice: 180 })
         .expect(200);
 
-      expect(updateRes.body.multiplier).toBe(1.65);
-      expect(updateRes.body.overridePrice).toBe(180);
+      const updatedBody = updateRes.body as RuleResponseDto;
+
+      expect(updatedBody.multiplier).toBe(1.65);
+      expect(updatedBody.overridePrice).toBe(180);
     });
 
     it('should reject update to overlapping period', async () => {
-      await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-01-01',
@@ -351,8 +395,8 @@ describe('Accommodations (e2e)', () => {
         })
         .expect(201);
 
-      const create = await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      const create = await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-02-01',
@@ -361,10 +405,10 @@ describe('Accommodations (e2e)', () => {
         })
         .expect(201);
 
-      const ruleId = create.body.id;
+      const rule = create.body as RuleResponseDto;
 
-      await request(app.getHttpServer())
-        .patch(`/accommodations/${accId}/rules/${ruleId}`)
+      await request(app.getHttpServer() as App)
+        .patch(`/accommodations/${testAccommodation.id}/rules/${rule.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-01-15',
@@ -374,38 +418,40 @@ describe('Accommodations (e2e)', () => {
     });
 
     it('should list rules', async () => {
-      const body = await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
-          startDate: '2025-01-01',
-          endDate: '2025-01-31',
+          startDate: '2028-01-01',
+          endDate: '2028-01-31',
           multiplier: 1.3,
-          periodType: PeriodType.SEASONAL
+          periodType: PeriodType.SEASONAL,
         })
+        .expect(201);
 
-      console.log(body)
-      await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
-          startDate: '2025-06-01',
-          endDate: '2025-08-31',
+          startDate: '2028-06-01',
+          endDate: '2028-08-31',
           multiplier: 1.5,
         })
         .expect(201);
 
-      const res = await request(app.getHttpServer())
-        .get(`/accommodations/${accId}/rules`)
+      const res = await request(app.getHttpServer() as App)
+        .get(`/accommodations/${testAccommodation.id}/rules`)
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(2);
+      const body = res.body as RuleResponseDto[];
+
+      expect(Array.isArray(body)).toBe(true);
+      expect(body.length).toBe(2);
     });
 
     it('should delete rule', async () => {
-      const create = await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/rules`)
+      const create = await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-03-01',
@@ -414,28 +460,31 @@ describe('Accommodations (e2e)', () => {
         })
         .expect(201);
 
-      const ruleId = create.body.id;
+      const rule = create.body as RuleResponseDto;
 
-      await request(app.getHttpServer())
-        .delete(`/accommodations/${accId}/rules/${ruleId}`)
+      await request(app.getHttpServer() as App)
+        .delete(`/accommodations/${testAccommodation.id}/rules/${rule.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(204);
     });
 
     it('should return 404 when deleting non-existent rule', async () => {
-      await request(app.getHttpServer())
-        .delete(`/accommodations/${accId}/rules/00000000-0000-0000-0000-000000000000`)
+      await request(app.getHttpServer() as App)
+        .delete(
+          `/accommodations/${testAccommodation.id}/rules/00000000-0000-0000-0000-000000000000`,
+        )
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(404);
     });
   });
 
   describe('Manual Blocks', () => {
-    let accId: string;
+    let testAccommodation: Accommodation;
 
     beforeEach(async () => {
-      const accommodation = await dataSource.getRepository(Accommodation).findOne({ where: {} });
-      accId = accommodation!.id;
+      testAccommodation = await dataSource.manager.save(Accommodation, {
+        ...accommodationsFixture[0],
+      });
     });
 
     it('should create manual block', async () => {
@@ -445,18 +494,36 @@ describe('Accommodations (e2e)', () => {
         notes: 'Host vacation',
       };
 
-      const res = await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/blocks`)
+      const res = await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/blocks`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send(payload)
         .expect(201);
 
-      expect(res.body.reason).toBe('MANUAL');
+      const body = res.body as BlockResponseDto;
+      expect(new Date(body.startDate).toISOString().split('T')[0]).toBe(
+        payload.startDate,
+      );
+      expect(new Date(body.endDate).toISOString().split('T')[0]).toBe(
+        payload.endDate,
+      );
+      expect(body.reason).toBe('MANUAL');
+    });
+
+    it('should reject block with endDate before startDate', async () => {
+      await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/blocks`)
+        .set(TEST_HOST_TOKEN_HEADERS)
+        .send({
+          startDate: '2025-08-22',
+          endDate: '2025-08-15',
+        })
+        .expect(400);
     });
 
     it('should delete manual block', async () => {
-      const create = await request(app.getHttpServer())
-        .post(`/accommodations/${accId}/blocks`)
+      const create = await request(app.getHttpServer() as App)
+        .post(`/accommodations/${testAccommodation.id}/blocks`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-11-05',
@@ -464,17 +531,19 @@ describe('Accommodations (e2e)', () => {
         })
         .expect(201);
 
-      const blockId = create.body.id;
+      const block = create.body as BlockResponseDto;
 
-      await request(app.getHttpServer())
-        .delete(`/accommodations/${accId}/blocks/${blockId}`)
+      await request(app.getHttpServer() as App)
+        .delete(`/accommodations/${testAccommodation.id}/blocks/${block.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(204);
     });
 
     it('should return 404 when deleting non-existent block', async () => {
-      await request(app.getHttpServer())
-        .delete(`/accommodations/${accId}/blocks/00000000-0000-0000-0000-000000000000`)
+      await request(app.getHttpServer() as App)
+        .delete(
+          `/accommodations/${testAccommodation.id}/blocks/00000000-0000-0000-0000-000000000000`,
+        )
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(404);
     });
