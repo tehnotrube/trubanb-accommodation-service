@@ -136,7 +136,7 @@ describe('AccommodationsService', () => {
       accommodationRepo.save.mockResolvedValue({ ...entity, ...updateDto });
       storageService.getPublicUrls.mockReturnValue(mockPublicUrls);
 
-      const result = await service.update(entity.id, updateDto);
+      const result = await service.update(entity.id, updateDto, 'host-123');
 
       expect(result.name).toBe('Updated Name');
       expect(result.basePrice).toBe(150);
@@ -148,7 +148,7 @@ describe('AccommodationsService', () => {
       const entity = mockEntity();
       accommodationRepo.findOneBy.mockResolvedValue(entity);
 
-      await service.remove(entity.id);
+      await service.remove(entity.id, 'host-123');
 
       expect(storageService.deleteFiles).toHaveBeenCalledWith(entity.photoKeys);
       expect(accommodationRepo.remove).toHaveBeenCalledWith(entity);
@@ -158,7 +158,7 @@ describe('AccommodationsService', () => {
       const entity = mockEntity({ photoKeys: [] });
       accommodationRepo.findOneBy.mockResolvedValue(entity);
 
-      await service.remove(entity.id);
+      await service.remove(entity.id, 'host-123');
 
       expect(storageService.deleteFiles).not.toHaveBeenCalled();
     });
@@ -182,7 +182,7 @@ describe('AccommodationsService', () => {
         'new2',
       ]);
 
-      const result = await service.uploadPhotos('123', files);
+      const result = await service.uploadPhotos('123', files, 'host-123');
 
       expect(storageService.uploadFiles).toHaveBeenCalledWith(files, '123');
       expect(result.photoUrls?.length).toBe(4);

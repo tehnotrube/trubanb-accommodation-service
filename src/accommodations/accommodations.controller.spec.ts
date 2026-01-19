@@ -1,34 +1,82 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { AccommodationsController } from './accommodations.controller';
 import { AccommodationsService } from './accommodations.service';
+import { AccommodationRulesService } from './rules/accommodation-rules.service';
+import { BlockedPeriodsService } from './blocks/blocked-periods.service';
+
 import { CreateAccommodationDto } from './dto/create-accommodation.dto';
 import { UpdateAccommodationDto } from './dto/update-accommodation.dto';
 import { GetAccommodationsDto } from './dto/get-accommodations.dto';
 import { AccommodationResponseDto } from './dto/accommodation.response.dto';
-import { PaginatedResponse } from 'src/common/types/PaginatedResponse';
+import { PaginatedResponse } from '.././common/types/PaginatedResponse';
+
+import { CreateRuleDto } from './dto/create-rule.dto';
+import { UpdateRuleDto } from './dto/update-rule.dto';
+import { RuleResponseDto } from './dto/rule.response.dto';
+
+import { CreateManualBlockDto } from './dto/create-manual-block.dto';
+import { BlockResponseDto } from './dto/block.response.dto';
+
+import type { AuthenticatedUser } from '.././auth/interfaces/authenticated-user.interface';
+import { UserRole } from '.././auth/guards/roles.guard';
+import { PeriodType } from './entities/accommodation-rule.entity';
 
 describe('AccommodationsController', () => {
   let controller: AccommodationsController;
-  let mockService: jest.Mocked<AccommodationsService>;
 
-  const mockResponseDto = (
-    partial: Partial<AccommodationResponseDto> = {},
-  ): AccommodationResponseDto =>
-    ({
-      id: 'accom_01J123abcDEF',
-      name: 'Cozy Apartment Belgrade',
-      location: 'Belgrade',
-      basePrice: 89.99,
-      minGuests: 2,
-      maxGuests: 6,
-      hostId: 'host_01J456xyz789',
-      amenities: ['WiFi', 'Kitchen'],
-      photoUrls: ['https://cdn.example.com/1.jpg'],
-      autoApprove: false,
-      createdAt: new Date('2025-01-01'),
-      updatedAt: new Date('2025-01-02'),
-      ...partial,
-    }) as AccommodationResponseDto;
+  let mockAccommodationsService: jest.Mocked<AccommodationsService>;
+  let mockRulesService: jest.Mocked<AccommodationRulesService>;
+  let mockBlocksService: jest.Mocked<BlockedPeriodsService>;
+
+  const mockUser = (email = 'test.host@example.com'): AuthenticatedUser => ({
+    id: 'usr_123456789',
+    email,
+    role: UserRole.HOST,
+  });
+
+  const mockAccommodationResponse = (
+    overrides: Partial<AccommodationResponseDto> = {},
+  ): AccommodationResponseDto => ({
+    id: 'acc_01JMOCKEDACCOM001',
+    name: 'Mocked Cozy Apartment',
+    location: 'Belgrade',
+    basePrice: 95.0,
+    minGuests: 2,
+    maxGuests: 5,
+    hostId: 'hst_01JMOCKEDHOST001',
+    amenities: ['WiFi', 'Air Conditioning', 'Kitchen'],
+    photoUrls: ['https://cdn.example.com/photo1.jpg'],
+    autoApprove: false,
+    isPerUnit: false,
+    createdAt: new Date('2025-10-01'),
+    updatedAt: new Date('2025-10-02'),
+    ...overrides,
+  });
+
+  const mockRuleResponse = (
+    overrides: Partial<RuleResponseDto> = {},
+  ): RuleResponseDto => ({
+    id: 'rule_01JMOCKRULE001',
+    startDate: new Date('2025-12-20'),
+    endDate: new Date('2026-01-10'),
+    multiplier: 1.35,
+    periodType: PeriodType.SEASONAL,
+    minStayDays: 4,
+    maxStayDays: 14,
+    ...overrides,
+  });
+
+  const mockBlockResponse = (
+    overrides: Partial<BlockResponseDto> = {},
+  ): BlockResponseDto => ({
+    id: 'blk_01JMOCKBLOCK001',
+    startDate: new Date('2025-11-10'),
+    endDate: new Date('2025-11-15'),
+    reason: 'MANUAL',
+    notes: 'Host private use',
+    ...overrides,
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -43,14 +91,31 @@ describe('AccommodationsController', () => {
             update: jest.fn(),
             remove: jest.fn(),
             uploadPhotos: jest.fn(),
-            deletePhoto: jest.fn(),
+          },
+        },
+        {
+          provide: AccommodationRulesService,
+          useValue: {
+            createRule: jest.fn(),
+            updateRule: jest.fn(),
+            deleteRule: jest.fn(),
+            getRules: jest.fn(),
+          },
+        },
+        {
+          provide: BlockedPeriodsService,
+          useValue: {
+            createManualBlock: jest.fn(),
+            deleteManualBlock: jest.fn(),
           },
         },
       ],
     }).compile();
 
     controller = module.get(AccommodationsController);
-    mockService = module.get(AccommodationsService);
+    mockAccommodationsService = module.get(AccommodationsService);
+    mockRulesService = module.get(AccommodationRulesService);
+    mockBlocksService = module.get(BlockedPeriodsService);
   });
 
   afterEach(() => {
@@ -62,124 +127,308 @@ describe('AccommodationsController', () => {
   });
 
   describe('create', () => {
-    it('should call service and return dto', async () => {
-      const inputDto: CreateAccommodationDto = {
-        name: 'Test Place',
-        location: 'Test City',
-        basePrice: 99.99,
+    it('should create and return accommodation response dto', async () => {
+      const createDto: CreateAccommodationDto = {
+        name: 'Test Studio',
+        location: 'Novi Sad',
+        basePrice: 65.0,
         minGuests: 1,
-        maxGuests: 4,
-        hostId: 'host123',
+        maxGuests: 3,
+        hostId: 'hst_01JMOCKEDHOST001',
+        amenities: ['WiFi'],
+        autoApprove: false,
+        isPerUnit: false,
       };
 
-      const expectedDto = mockResponseDto({
-        name: inputDto.name,
-        location: inputDto.location,
+      const expected = mockAccommodationResponse({
+        name: createDto.name,
+        basePrice: createDto.basePrice,
       });
+      mockAccommodationsService.create.mockResolvedValue(expected);
 
-      mockService.create.mockResolvedValue(expectedDto);
+      const result = await controller.create(createDto);
 
-      const result = await controller.create(inputDto);
-
-      expect(mockService.create).toHaveBeenCalledWith(inputDto);
-      expect(result).toEqual(expectedDto);
+      expect(mockAccommodationsService.create).toHaveBeenCalledWith(createDto);
+      expect(result).toEqual(expected);
     });
   });
 
   describe('findAll', () => {
-    it('should return paginated response', async () => {
-      const query: GetAccommodationsDto = { page: 2, pageSize: 15 };
-
-      const paginated: PaginatedResponse<AccommodationResponseDto> = {
-        data: [mockResponseDto(), mockResponseDto({ id: 'second' })],
-        total: 47,
-        page: 2,
-        pageSize: 15,
+    it('should return paginated accommodations', async () => {
+      const query: GetAccommodationsDto = {
+        page: 1,
+        pageSize: 12,
+        location: 'Belgrade',
       };
 
-      mockService.findAll.mockResolvedValue(paginated);
+      const paginated: PaginatedResponse<AccommodationResponseDto> = {
+        data: [
+          mockAccommodationResponse(),
+          mockAccommodationResponse({ id: 'acc_999', name: 'Second place' }),
+        ],
+        total: 47,
+        page: 1,
+        pageSize: 12,
+      };
+
+      mockAccommodationsService.findAll.mockResolvedValue(paginated);
 
       const result = await controller.findAll(query);
 
-      expect(mockService.findAll).toHaveBeenCalledWith(query);
-      expect(result).toBe(paginated);
+      expect(mockAccommodationsService.findAll).toHaveBeenCalledWith(query);
+      expect(result).toEqual(paginated);
     });
   });
 
   describe('findOne', () => {
-    it('should return single dto', async () => {
-      const expected = mockResponseDto();
-      mockService.findOne.mockResolvedValue(expected);
+    it('should return single accommodation', async () => {
+      const expected = mockAccommodationResponse();
+      mockAccommodationsService.findOne.mockResolvedValue(expected);
 
-      const result = await controller.findOne('accom_01J123abcDEF');
+      const result = await controller.findOne('acc_01JMOCKEDACCOM001');
 
-      expect(mockService.findOne).toHaveBeenCalledWith('accom_01J123abcDEF');
-      expect(result).toBe(expected);
+      expect(mockAccommodationsService.findOne).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+      );
+      expect(result).toEqual(expected);
+    });
+
+    it('should throw when accommodation not found', async () => {
+      mockAccommodationsService.findOne.mockRejectedValue(
+        new NotFoundException(),
+      );
+
+      await expect(controller.findOne('invalid')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('update', () => {
     it('should update and return updated dto', async () => {
       const updateDto: UpdateAccommodationDto = {
-        name: 'New Amazing Name',
-        basePrice: 199.99,
+        name: 'Renovated Luxury',
+        basePrice: 150.0,
       };
 
-      const updatedDto = mockResponseDto({
-        name: updateDto.name,
-        basePrice: updateDto.basePrice,
-      });
+      const updated = mockAccommodationResponse({ ...updateDto });
+      mockAccommodationsService.update.mockResolvedValue(updated);
 
-      mockService.update.mockResolvedValue(updatedDto);
-
-      const result = await controller.update('accom_01J123abcDEF', updateDto);
-
-      expect(mockService.update).toHaveBeenCalledWith(
-        'accom_01J123abcDEF',
+      const result = await controller.update(
+        'acc_01JMOCKEDACCOM001',
         updateDto,
+        mockUser(),
       );
-      expect(result).toEqual(updatedDto);
+
+      expect(mockAccommodationsService.update).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+        updateDto,
+        'test.host@example.com',
+      );
+      expect(result).toEqual(updated);
     });
   });
 
   describe('remove', () => {
-    it('should call service remove', async () => {
-      mockService.remove.mockResolvedValue(undefined);
+    it('should call remove on service', async () => {
+      mockAccommodationsService.remove.mockResolvedValue(undefined);
 
-      await expect(
-        controller.remove('accom_01J123abcDEF'),
-      ).resolves.toBeUndefined();
+      await controller.remove('acc_01JMOCKEDACCOM001', mockUser());
 
-      expect(mockService.remove).toHaveBeenCalledWith('accom_01J123abcDEF');
+      expect(mockAccommodationsService.remove).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+        'test.host@example.com',
+      );
     });
   });
 
   describe('uploadPhotos', () => {
-    it('should forward files and return updated dto', async () => {
-      const mockFiles = [
-        {
-          originalname: 'test1.jpg',
-          buffer: Buffer.from('fake'),
-        } as Express.Multer.File,
-        {
-          originalname: 'test2.png',
-          buffer: Buffer.from('fake2'),
-        } as Express.Multer.File,
-      ];
+    const mockFiles = [
+      {
+        originalname: 'photo.jpg',
+        mimetype: 'image/jpeg',
+        buffer: Buffer.from('...'),
+      } as Express.Multer.File,
+    ];
 
-      const updatedDto = mockResponseDto({
-        photoUrls: ['url1.jpg', 'url2.png', 'url3.webp'],
+    it('should upload photos and return updated accommodation', async () => {
+      const updated = mockAccommodationResponse({
+        photoUrls: ['new-photo-1.jpg', 'new-photo-2.jpg'],
       });
 
-      mockService.uploadPhotos.mockResolvedValue(updatedDto);
+      mockAccommodationsService.uploadPhotos.mockResolvedValue(updated);
 
-      const result = await controller.uploadPhotos('accom_xxx', mockFiles);
-
-      expect(mockService.uploadPhotos).toHaveBeenCalledWith(
-        'accom_xxx',
+      const result = await controller.uploadPhotos(
+        'acc_01JMOCKEDACCOM001',
         mockFiles,
+        mockUser(),
       );
-      expect(result).toBe(updatedDto);
+
+      expect(mockAccommodationsService.uploadPhotos).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+        mockFiles,
+        'test.host@example.com',
+      );
+      expect(result).toEqual(updated);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────
+  //                           RULES
+  // ────────────────────────────────────────────────────────────────
+
+  describe('createRule', () => {
+    it('should create rule and return RuleResponseDto', async () => {
+      const createDto: CreateRuleDto = {
+        startDate: new Date('2025-12-20'),
+        endDate: new Date('2026-01-10'),
+        overridePrice: 180,
+        multiplier: 1.5,
+        periodType: PeriodType.SEASONAL,
+      };
+
+      const expected: RuleResponseDto = mockRuleResponse({
+        ...createDto,
+        id: 'rule_new_123',
+      });
+
+      mockRulesService.createRule.mockResolvedValue(expected);
+
+      const result = await controller.createRule(
+        'acc_01JMOCKEDACCOM001',
+        createDto,
+        mockUser(),
+      );
+
+      expect(mockRulesService.createRule).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+        expect.objectContaining(createDto),
+        'test.host@example.com',
+      );
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('updateRule', () => {
+    it('should update rule and return updated RuleResponseDto', async () => {
+      const updateDto: UpdateRuleDto = {
+        multiplier: 1.75,
+        overridePrice: 220,
+      };
+
+      const updated: RuleResponseDto = mockRuleResponse({
+        ...updateDto,
+        id: 'rule_01JMOCKRULE001',
+      });
+
+      mockRulesService.updateRule.mockResolvedValue(updated);
+
+      const result = await controller.updateRule(
+        'acc_01JMOCKEDACCOM001',
+        'rule_01JMOCKRULE001',
+        updateDto,
+        mockUser(),
+      );
+
+      expect(mockRulesService.updateRule).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+        'rule_01JMOCKRULE001',
+        updateDto,
+        'test.host@example.com',
+      );
+      expect(result).toEqual(updated);
+    });
+  });
+
+  describe('deleteRule', () => {
+    it('should call deleteRule on service', async () => {
+      mockRulesService.deleteRule.mockResolvedValue(undefined);
+
+      await controller.deleteRule(
+        'acc_01JMOCKEDACCOM001',
+        'rule_01JMOCKRULE001',
+        mockUser(),
+      );
+
+      expect(mockRulesService.deleteRule).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+        'rule_01JMOCKRULE001',
+        'test.host@example.com',
+      );
+    });
+  });
+
+  describe('getRules', () => {
+    it('should return array of RuleResponseDto', async () => {
+      const rules: RuleResponseDto[] = [
+        mockRuleResponse({ id: 'r1', periodType: PeriodType.WEEKEND }),
+        mockRuleResponse({
+          id: 'r2',
+          periodType: PeriodType.HOLIDAY,
+          overridePrice: 250,
+        }),
+      ];
+
+      mockRulesService.getRules.mockResolvedValue(rules);
+
+      const result = await controller.getRules('acc_01JMOCKEDACCOM001');
+
+      expect(mockRulesService.getRules).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+      );
+      expect(result).toEqual(rules);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────
+  //                        MANUAL BLOCKS
+  // ────────────────────────────────────────────────────────────────
+
+  describe('createManualBlock', () => {
+    it('should create manual block and return BlockResponseDto', async () => {
+      const createDto: CreateManualBlockDto = {
+        startDate: new Date('2025-11-20'),
+        endDate: new Date('2025-11-27'),
+        notes: 'Owner staying',
+      };
+
+      const expected: BlockResponseDto = mockBlockResponse({
+        ...createDto,
+        id: 'blk_new_777',
+      });
+
+      mockBlocksService.createManualBlock.mockResolvedValue(expected);
+
+      const result = await controller.createManualBlock(
+        'acc_01JMOCKEDACCOM001',
+        createDto,
+        mockUser(),
+      );
+
+      expect(mockBlocksService.createManualBlock).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+        createDto,
+        'test.host@example.com',
+      );
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('deleteManualBlock', () => {
+    it('should call deleteManualBlock on service', async () => {
+      mockBlocksService.deleteManualBlock.mockResolvedValue(undefined);
+
+      await controller.deleteManualBlock(
+        'acc_01JMOCKEDACCOM001',
+        'blk_01JMOCKBLOCK001',
+        mockUser(),
+      );
+
+      expect(mockBlocksService.deleteManualBlock).toHaveBeenCalledWith(
+        'acc_01JMOCKEDACCOM001',
+        'blk_01JMOCKBLOCK001',
+        'test.host@example.com',
+      );
     });
   });
 });
