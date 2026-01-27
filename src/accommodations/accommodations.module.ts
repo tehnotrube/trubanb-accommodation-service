@@ -1,4 +1,4 @@
-import { Module, Res } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccommodationsController } from './accommodations.controller';
 import { AccommodationsGrpcController } from './accommodations.grpc.controller';
@@ -9,13 +9,17 @@ import { AccommodationRule } from './entities/accommodation-rule.entity';
 import { BlockedPeriod } from './entities/blocked-period.entity';
 import { StorageService } from '../storage/storage.service';
 import { AccommodationRulesService } from './rules/accommodation-rules.service';
-import { ReservationEventsController } from 'src/events/reservations/reservation-events.controller';
+import { ReservationEventsController } from '../events/reservations/reservation-events.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Accommodation, AccommodationRule, BlockedPeriod]),
   ],
-  controllers: [ReservationEventsController, AccommodationsController, AccommodationsGrpcController],
+  controllers: [
+    ReservationEventsController,
+    AccommodationsController,
+    AccommodationsGrpcController,
+  ],
   providers: [
     AccommodationsService,
     AccommodationRulesService,

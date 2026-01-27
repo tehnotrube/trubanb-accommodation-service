@@ -42,11 +42,9 @@ export class AccommodationsService {
           overridePrice: r.overridePrice,
           multiplier: r.multiplier,
           periodType: r.periodType,
-          minStayDays: (r as any).minStayDays,
-          maxStayDays: (r as any).maxStayDays,
         })),
       },
-      { excludeExtraneousValues: true,  },
+      { excludeExtraneousValues: true },
     );
   }
 
@@ -69,7 +67,7 @@ export class AccommodationsService {
 
   async create(
     createAccommodationDto: CreateAccommodationDto,
-    hostId: string
+    hostId: string,
   ): Promise<AccommodationResponseDto> {
     if (createAccommodationDto.minGuests > createAccommodationDto.maxGuests) {
       throw new BadRequestException(

@@ -4,9 +4,11 @@ import {
 } from '@testcontainers/postgresql';
 import { MinioContainer, StartedMinioContainer } from '@testcontainers/minio';
 import { getTypeOrmConfig } from '../../src/db/typeorm.config';
+import { RabbitMQContainer, StartedRabbitMQContainer } from '@testcontainers/rabbitmq';
 
 export let dbContainer: StartedPostgreSqlContainer;
 export let minioContainer: StartedMinioContainer;
+export let rabbitContainer: StartedRabbitMQContainer;
 
 export default async function globalSetup() {
   dbContainer = await new PostgreSqlContainer('postgres:16-alpine')
@@ -21,6 +23,13 @@ export default async function globalSetup() {
     .withPassword('minioadmin123')
     .withExposedPorts(9000)
     .start();
+
+  rabbitContainer = await new RabbitMQContainer('rabbitmq:management')
+  .withExposedPorts(5672)
+  .start();
+
+  const rabbitHost = rabbitContainer.getHost();
+  const rabbitPort = rabbitContainer.getMappedPort(5672);
 
   const minioHost = minioContainer.getHost();
   const minioPort = minioContainer.getMappedPort(9000);
@@ -39,6 +48,8 @@ export default async function globalSetup() {
   process.env.MINIO_BUCKET = 'test-photos';
   process.env.MINIO_USE_SSL = 'false';
   process.env.STORAGE_PUBLIC_URL = minioEndpoint;
+
+  process.env.RABBITMQ_URL = `amqp://guest:guest@${rabbitHost}:${rabbitPort}`;
 
   process.env.ENV = 'test';
   process.env.NODE_ENV = 'test';
@@ -63,4 +74,5 @@ export default async function globalSetup() {
 
   global.__DB_CONTAINER__ = dbContainer;
   global.__MINIO_CONTAINER__ = minioContainer;
+  global.__RABBIT_CONTAINER__ = rabbitContainer;
 }

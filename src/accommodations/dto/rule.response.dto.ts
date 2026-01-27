@@ -18,10 +18,4 @@ export class RuleResponseDto {
 
   @Expose()
   periodType?: string;
-
-  @Expose()
-  minStayDays?: number;
-
-  @Expose()
-  maxStayDays?: number;
 }

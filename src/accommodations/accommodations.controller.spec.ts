@@ -24,7 +24,6 @@ describe('AccommodationsController', () => {
 
   let mockAccommodationsService: jest.Mocked<AccommodationsService>;
   let mockRulesService: jest.Mocked<AccommodationRulesService>;
-  let mockBlocksService: jest.Mocked<BlockedPeriodsService>;
 
   const mockUser = (email = 'test.host@example.com'): AuthenticatedUser => ({
     id: 'usr_123456789',
@@ -61,11 +60,8 @@ describe('AccommodationsController', () => {
     endDate: new Date('2026-01-10'),
     multiplier: 1.35,
     periodType: PeriodType.SEASONAL,
-    minStayDays: 4,
-    maxStayDays: 14,
     ...overrides,
   });
-
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -104,7 +100,6 @@ describe('AccommodationsController', () => {
     controller = module.get(AccommodationsController);
     mockAccommodationsService = module.get(AccommodationsService);
     mockRulesService = module.get(AccommodationRulesService);
-    mockBlocksService = module.get(BlockedPeriodsService);
   });
 
   afterEach(() => {
@@ -136,7 +131,10 @@ describe('AccommodationsController', () => {
 
       const result = await controller.create(createDto, mockUser());
 
-      expect(mockAccommodationsService.create).toHaveBeenCalledWith(createDto, mockUser().id);
+      expect(mockAccommodationsService.create).toHaveBeenCalledWith(
+        createDto,
+        mockUser().id,
+      );
       expect(result).toEqual(expected);
     });
   });

@@ -31,7 +31,7 @@ export class BlockedPeriodsService {
 
   async removeReservationBlock(reservationId: string): Promise<void> {
     await this.blockedPeriodRepository.delete({
-      reservationId
+      reservationId,
     });
   }
 }

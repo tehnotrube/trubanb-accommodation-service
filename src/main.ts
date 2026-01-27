@@ -19,7 +19,7 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  
+
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {

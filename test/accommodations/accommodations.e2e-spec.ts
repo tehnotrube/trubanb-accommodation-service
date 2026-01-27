@@ -13,7 +13,6 @@ import { App } from 'supertest/types';
 import { PaginatedResponse } from 'src/common/types/PaginatedResponse';
 import { AccommodationResponseDto } from 'src/accommodations/dto/accommodation.response.dto';
 import { RuleResponseDto } from 'src/accommodations/dto/rule.response.dto';
-import { BlockResponseDto } from 'src/accommodations/dto/block.response.dto';
 
 describe('Accommodations (e2e)', () => {
   let dataSource: DataSource;
@@ -22,10 +21,6 @@ describe('Accommodations (e2e)', () => {
   beforeAll(async () => {
     dataSource = app.get(DataSource);
 
-<<<<<<< HEAD
-    // Seed all fixture accommodations once
-=======
->>>>>>> d59c895 (feat: Modify rule creation logic and prevent rule overlap.)
     for (const fixture of accommodationsFixture) {
       const acc = await dataSource.manager.save(Accommodation, { ...fixture });
       seededAccommodations.push(acc);

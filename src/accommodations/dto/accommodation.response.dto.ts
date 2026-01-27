@@ -20,7 +20,10 @@ export class AccommodationResponseDto {
   @Expose()
   amenities: string[];
 
-  @ApiPropertyOptional({ type: [String], example: ['https://cdn.../photo1.jpg'] })
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['https://cdn.../photo1.jpg'],
+  })
   @Expose()
   photoUrls?: string[];
 

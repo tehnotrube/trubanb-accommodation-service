@@ -25,6 +25,8 @@ export class ReservationEventsController {
     queue: 'accommodation.reservation.removal-queue',
   })
   async handleReservationRemoved(event: { reservationId: string }) {
-    await this.blockedPeriodsService.removeReservationBlock(event.reservationId);
+    await this.blockedPeriodsService.removeReservationBlock(
+      event.reservationId,
+    );
   }
 }
