@@ -13,7 +13,6 @@ import { App } from 'supertest/types';
 import { PaginatedResponse } from 'src/common/types/PaginatedResponse';
 import { AccommodationResponseDto } from 'src/accommodations/dto/accommodation.response.dto';
 import { RuleResponseDto } from 'src/accommodations/dto/rule.response.dto';
-import { BlockResponseDto } from 'src/accommodations/dto/block.response.dto';
 
 describe('Accommodations (e2e)', () => {
   let dataSource: DataSource;
@@ -22,7 +21,6 @@ describe('Accommodations (e2e)', () => {
   beforeAll(async () => {
     dataSource = app.get(DataSource);
 
-    // Seed all fixture accommodations once
     for (const fixture of accommodationsFixture) {
       const acc = await dataSource.manager.save(Accommodation, { ...fixture });
       seededAccommodations.push(acc);
@@ -472,77 +470,6 @@ describe('Accommodations (e2e)', () => {
       await request(app.getHttpServer() as App)
         .delete(
           `/accommodations/${testAccommodation.id}/rules/00000000-0000-0000-0000-000000000000`,
-        )
-        .set(TEST_HOST_TOKEN_HEADERS)
-        .expect(404);
-    });
-  });
-
-  describe('Manual Blocks', () => {
-    let testAccommodation: Accommodation;
-
-    beforeEach(async () => {
-      testAccommodation = await dataSource.manager.save(Accommodation, {
-        ...accommodationsFixture[0],
-      });
-    });
-
-    it('should create manual block', async () => {
-      const payload = {
-        startDate: '2025-08-15',
-        endDate: '2025-08-22',
-        notes: 'Host vacation',
-      };
-
-      const res = await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/blocks`)
-        .set(TEST_HOST_TOKEN_HEADERS)
-        .send(payload)
-        .expect(201);
-
-      const body = res.body as BlockResponseDto;
-      expect(new Date(body.startDate).toISOString().split('T')[0]).toBe(
-        payload.startDate,
-      );
-      expect(new Date(body.endDate).toISOString().split('T')[0]).toBe(
-        payload.endDate,
-      );
-      expect(body.reason).toBe('MANUAL');
-    });
-
-    it('should reject block with endDate before startDate', async () => {
-      await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/blocks`)
-        .set(TEST_HOST_TOKEN_HEADERS)
-        .send({
-          startDate: '2025-08-22',
-          endDate: '2025-08-15',
-        })
-        .expect(400);
-    });
-
-    it('should delete manual block', async () => {
-      const create = await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/blocks`)
-        .set(TEST_HOST_TOKEN_HEADERS)
-        .send({
-          startDate: '2025-11-05',
-          endDate: '2025-11-08',
-        })
-        .expect(201);
-
-      const block = create.body as BlockResponseDto;
-
-      await request(app.getHttpServer() as App)
-        .delete(`/accommodations/${testAccommodation.id}/blocks/${block.id}`)
-        .set(TEST_HOST_TOKEN_HEADERS)
-        .expect(204);
-    });
-
-    it('should return 404 when deleting non-existent block', async () => {
-      await request(app.getHttpServer() as App)
-        .delete(
-          `/accommodations/${testAccommodation.id}/blocks/00000000-0000-0000-0000-000000000000`,
         )
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(404);

@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
+import { BlockResponseDto } from './block.response.dto';
+import { RuleResponseDto } from './rule.response.dto';
 
 export class AccommodationResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
@@ -14,10 +16,7 @@ export class AccommodationResponseDto {
   @Expose()
   location: string;
 
-  @ApiProperty({
-    type: [String],
-    example: ['WiFi', 'Kitchen', 'Air Conditioning'],
-  })
+  @ApiProperty({ type: [String], example: ['WiFi', 'Kitchen'] })
   @Expose()
   amenities: string[];
 
@@ -59,4 +58,14 @@ export class AccommodationResponseDto {
   @ApiProperty()
   @Expose()
   isPerUnit: boolean;
+
+  @ApiProperty({ type: [BlockResponseDto] })
+  @Expose()
+  @Type(() => BlockResponseDto)
+  blockedPeriods: BlockResponseDto[];
+
+  @ApiProperty({ type: [RuleResponseDto] })
+  @Expose()
+  @Type(() => RuleResponseDto)
+  accommodationRules: RuleResponseDto[];
 }

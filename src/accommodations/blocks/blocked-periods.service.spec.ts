@@ -1,44 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Repository, DeleteResult } from 'typeorm';
 import { BlockedPeriodsService } from './blocked-periods.service';
 import { BlockedPeriod } from '../entities/blocked-period.entity';
-import { Accommodation } from '../entities/accommodation.entity';
-import { CreateManualBlockDto } from '../dto/create-manual-block.dto';
+import { ReservationCreatedEvent } from '../../events/reservations/reservation-created.event';
 
-describe('BlockedPeriodsService (manual blocks)', () => {
+describe('BlockedPeriodsService', () => {
   let service: BlockedPeriodsService;
-  let blockedRepo: jest.Mocked<Repository<BlockedPeriod>>;
-  let accommodationRepo: jest.Mocked<Repository<Accommodation>>;
+  let blockedRepo: Repository<BlockedPeriod>;
 
-  const HOST_EMAIL = 'host@example.com';
-  const OTHER_EMAIL = 'other@example.com';
+  const mockEvent: ReservationCreatedEvent = {
+    reservationId: 'res_123',
+    accommodationId: 'acc_456',
+    startDate: '2026-06-01',
+    endDate: '2026-06-05',
+    reason: 'RESERVATION',
+  };
 
-  const mockAccommodation = (
-    partial: Partial<Accommodation> = {},
-  ): Accommodation =>
-    ({
-      id: 'acc_01JTESTACCOM001',
-      name: 'Test Apartment',
-      hostId: HOST_EMAIL,
-      ...partial,
-    }) as Accommodation;
-
-  const mockBlock = (partial: Partial<BlockedPeriod> = {}): BlockedPeriod =>
-    ({
-      id: 'blk_01JTESTBLOCK001',
-      accommodationId: 'acc_01JTESTACCOM001',
-      startDate: new Date('2025-07-15'),
-      endDate: new Date('2025-07-20'),
-      reason: 'MANUAL',
-      notes: 'Host vacation',
-      ...partial,
-    }) as BlockedPeriod;
+  const mockEntity = (data: Partial<BlockedPeriod>): BlockedPeriod =>
+    data as BlockedPeriod;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -50,129 +30,62 @@ describe('BlockedPeriodsService (manual blocks)', () => {
             create: jest.fn(),
             save: jest.fn(),
             findOne: jest.fn(),
-            count: jest.fn(),
-            remove: jest.fn(),
-          },
-        },
-        {
-          provide: getRepositoryToken(Accommodation),
-          useValue: {
-            findOneBy: jest.fn(),
+            delete: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get(BlockedPeriodsService);
-    blockedRepo = module.get(getRepositoryToken(BlockedPeriod));
-    accommodationRepo = module.get(getRepositoryToken(Accommodation));
+    blockedRepo = module.get<Repository<BlockedPeriod>>(
+      getRepositoryToken(BlockedPeriod),
+    );
   });
 
-  afterEach(() => jest.clearAllMocks());
+  describe('createReservationBlock', () => {
+    it('should create and save a new block if it does not exist', async () => {
+      jest.spyOn(blockedRepo, 'findOne').mockResolvedValue(null);
 
-  describe('createManualBlock', () => {
-    it('should throw when user is not owner', async () => {
-      accommodationRepo.findOneBy.mockResolvedValue(mockAccommodation());
+      const createdBlock = mockEntity({
+        ...mockEvent,
+        startDate: new Date(mockEvent.startDate),
+        endDate: new Date(mockEvent.endDate),
+      });
+      jest.spyOn(blockedRepo, 'create').mockReturnValue(createdBlock);
+      jest.spyOn(blockedRepo, 'save').mockResolvedValue(createdBlock);
 
-      await expect(
-        service.createManualBlock(
-          'acc-id',
-          {} as CreateManualBlockDto,
-          OTHER_EMAIL,
-        ),
-      ).rejects.toThrow(ForbiddenException);
+      await service.createReservationBlock(mockEvent);
+
+      expect(blockedRepo.findOne).toHaveBeenCalledWith({
+        where: { reservationId: mockEvent.reservationId },
+      });
+      expect(blockedRepo.save).toHaveBeenCalledWith(createdBlock);
     });
 
-    it('should throw when startDate >= endDate', async () => {
-      const dto: CreateManualBlockDto = {
-        startDate: new Date('2025-08-22'),
-        endDate: new Date('2025-08-15'),
-      };
+    it('should skip creation if block exists', async () => {
+      jest
+        .spyOn(blockedRepo, 'findOne')
+        .mockResolvedValue(mockEntity({ id: 'exists' }));
 
-      accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
-      );
+      await service.createReservationBlock(mockEvent);
 
-      await expect(
-        service.createManualBlock('acc-id', dto, HOST_EMAIL),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw when period has active reservations', async () => {
-      accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
-      );
-      blockedRepo.count.mockResolvedValue(1); // has reservation
-
-      const dto: CreateManualBlockDto = {
-        startDate: new Date('2025-09-01'),
-        endDate: new Date('2025-09-10'),
-      };
-
-      await expect(
-        service.createManualBlock('acc-id', dto, HOST_EMAIL),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should successfully create manual block', async () => {
-      const dto: CreateManualBlockDto = {
-        startDate: new Date('2025-09-05'),
-        endDate: new Date('2025-09-12'),
-        notes: 'Host vacation',
-      };
-
-      accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
-      );
-      blockedRepo.count.mockResolvedValue(0);
-
-      const createdBlock = {
-        id: 'new-block',
-        ...dto,
-        reason: 'MANUAL',
-      } as BlockedPeriod;
-      blockedRepo.create.mockReturnValue(createdBlock);
-      blockedRepo.save.mockResolvedValue(createdBlock);
-
-      const result = await service.createManualBlock('acc-id', dto, HOST_EMAIL);
-
-      expect(result.id).toBe('new-block');
-      expect(result.reason).toBe('MANUAL');
-      expect(result.notes).toBe('Host vacation');
+      expect(blockedRepo.create).not.toHaveBeenCalled();
+      expect(blockedRepo.save).not.toHaveBeenCalled();
     });
   });
 
-  describe('deleteManualBlock', () => {
-    it('should throw when block not found or not MANUAL', async () => {
-      blockedRepo.findOne.mockResolvedValue(null);
+  describe('removeReservationBlock', () => {
+    it('should call delete with correct criteria', async () => {
+      const resId = 'res_123';
+      const mockDeleteResult: DeleteResult = { raw: [], affected: 1 };
 
-      await expect(
-        service.deleteManualBlock('acc-id', 'wrong-block', HOST_EMAIL),
-      ).rejects.toThrow(NotFoundException);
-    });
+      jest.spyOn(blockedRepo, 'delete').mockResolvedValue(mockDeleteResult);
 
-    it('should throw when user is not owner', async () => {
-      const block = mockBlock();
+      await service.removeReservationBlock(resId);
 
-      blockedRepo.findOne.mockResolvedValue(block);
-      accommodationRepo.findOneBy.mockResolvedValue(mockAccommodation());
-
-      await expect(
-        service.deleteManualBlock('acc-id', block.id, OTHER_EMAIL),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should successfully delete manual block', async () => {
-      const block = mockBlock();
-
-      blockedRepo.findOne.mockResolvedValue(block);
-      accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
-      );
-
-      await service.deleteManualBlock('acc-id', block.id, HOST_EMAIL);
-
-      expect(blockedRepo.remove).toHaveBeenCalledWith(block);
+      expect(blockedRepo.delete).toHaveBeenCalledWith({
+        reservationId: resId,
+      });
     });
   });
 });
