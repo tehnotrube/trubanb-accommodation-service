@@ -37,7 +37,7 @@ import { CreateRuleDto } from './dto/create-rule.dto';
 import { UpdateRuleDto } from './dto/update-rule.dto';
 import { RuleResponseDto } from './dto/rule.response.dto';
 
-@Controller('accommodations')
+@Controller('/api/accommodations')
 export class AccommodationsController {
   constructor(
     private readonly accommodationsService: AccommodationsService,
@@ -51,7 +51,7 @@ export class AccommodationsController {
     @Body() createAccommodationDto: CreateAccommodationDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<AccommodationResponseDto> {
-    return this.accommodationsService.create(createAccommodationDto, user.id);
+    return this.accommodationsService.create(createAccommodationDto, user.email);
   }
 
   @Get()

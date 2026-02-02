@@ -67,7 +67,7 @@ export class AccommodationsService {
 
   async create(
     createAccommodationDto: CreateAccommodationDto,
-    hostId: string,
+    hostEmail: string,
   ): Promise<AccommodationResponseDto> {
     if (createAccommodationDto.minGuests > createAccommodationDto.maxGuests) {
       throw new BadRequestException(
@@ -77,7 +77,7 @@ export class AccommodationsService {
 
     const accommodation = this.accommodationRepository.create({
       ...createAccommodationDto,
-      hostId,
+      hostId: hostEmail,
       photoKeys: [],
     });
     const saved = await this.accommodationRepository.save(accommodation);
