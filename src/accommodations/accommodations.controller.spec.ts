@@ -133,7 +133,7 @@ describe('AccommodationsController', () => {
 
       expect(mockAccommodationsService.create).toHaveBeenCalledWith(
         createDto,
-        mockUser().id,
+        mockUser().email,
       );
       expect(result).toEqual(expected);
     });

@@ -34,7 +34,7 @@ describe('Accommodations (e2e)', () => {
   describe('GET /accommodations - list & pagination', () => {
     it('should return paginated list with default values', async () => {
       const res = await request(app.getHttpServer() as App)
-        .get('/accommodations')
+        .get('/api/accommodations')
         .expect(200);
 
       const body = res.body as PaginatedResponse<AccommodationResponseDto>;
@@ -48,7 +48,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should respect custom page and pageSize', async () => {
       const res = await request(app.getHttpServer() as App)
-        .get('/accommodations?page=1&pageSize=1')
+        .get('/api/accommodations?page=1&pageSize=1')
         .expect(200);
 
       const body = res.body as PaginatedResponse<AccommodationResponseDto>;
@@ -59,7 +59,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should return empty data when page is out of range', async () => {
       const res = await request(app.getHttpServer() as App)
-        .get('/accommodations?page=999&pageSize=10')
+        .get('/api/accommodations?page=999&pageSize=10')
         .expect(200);
 
       const body = res.body as PaginatedResponse<AccommodationResponseDto>;
@@ -74,7 +74,7 @@ describe('Accommodations (e2e)', () => {
       const id = seededAccommodations[0].id;
 
       const res = await request(app.getHttpServer() as App)
-        .get(`/accommodations/${id}`)
+        .get(`/api/accommodations/${id}`)
         .expect(200);
 
       const body = res.body as AccommodationResponseDto;
@@ -88,7 +88,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should return 404 for non-existent id', async () => {
       await request(app.getHttpServer() as App)
-        .get('/accommodations/00000000-0000-0000-0000-000000000000')
+        .get('/api/accommodations/00000000-0000-0000-0000-000000000000')
         .expect(404);
     });
   });
@@ -108,7 +108,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should create accommodation', async () => {
       const res = await request(app.getHttpServer() as App)
-        .post('/accommodations')
+        .post('/api/accommodations')
         .set(TEST_HOST_TOKEN_HEADERS)
         .send(validPayload)
         .expect(201);
@@ -130,14 +130,14 @@ describe('Accommodations (e2e)', () => {
 
     it('should reject unauthenticated request', async () => {
       await request(app.getHttpServer() as App)
-        .post('/accommodations')
+        .post('/api/accommodations')
         .send(validPayload)
         .expect(401);
     });
 
     it('should reject guest role', async () => {
       await request(app.getHttpServer() as App)
-        .post('/accommodations')
+        .post('/api/accommodations')
         .set(TEST_GUEST_TOKEN_HEADERS)
         .send(validPayload)
         .expect(403);
@@ -145,7 +145,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should reject negative price', async () => {
       await request(app.getHttpServer() as App)
-        .post('/accommodations')
+        .post('/api/accommodations')
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({ ...validPayload, basePrice: -10 })
         .expect(400);
@@ -153,7 +153,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should reject minGuests greater than maxGuests', async () => {
       await request(app.getHttpServer() as App)
-        .post('/accommodations')
+        .post('/api/accommodations')
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({ ...validPayload, minGuests: 5, maxGuests: 3 })
         .expect(400);
@@ -177,7 +177,7 @@ describe('Accommodations (e2e)', () => {
       };
 
       const res = await request(app.getHttpServer() as App)
-        .put(`/accommodations/${testAccommodation.id}`)
+        .put(`/api/accommodations/${testAccommodation.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send(updateData)
         .expect(200);
@@ -191,7 +191,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should return 404 for non-existent id', async () => {
       await request(app.getHttpServer() as App)
-        .put('/accommodations/00000000-0000-0000-0000-000000000000')
+        .put('/api/accommodations/00000000-0000-0000-0000-000000000000')
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({ name: 'Test' })
         .expect(404);
@@ -209,7 +209,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should delete accommodation', async () => {
       await request(app.getHttpServer() as App)
-        .delete(`/accommodations/${testAccommodation.id}`)
+        .delete(`/api/accommodations/${testAccommodation.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(204);
 
@@ -231,7 +231,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should upload single photo', async () => {
       const res = await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/photos`)
+        .post(`/api/accommodations/${testAccommodation.id}/photos`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('fake-image'), {
           filename: 'living-room.jpg',
@@ -247,7 +247,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should upload multiple photos', async () => {
       const res = await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/photos`)
+        .post(`/api/accommodations/${testAccommodation.id}/photos`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('fake1'), {
           filename: 'test1.jpg',
@@ -266,7 +266,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should reject non-image file', async () => {
       await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/photos`)
+        .post(`/api/accommodations/${testAccommodation.id}/photos`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('hello'), {
           filename: 'document.pdf',
@@ -277,7 +277,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should return 404 for non-existent accommodation', async () => {
       await request(app.getHttpServer() as App)
-        .post('/accommodations/00000000-0000-0000-0000-000000000000/photos')
+        .post('/api/accommodations/00000000-0000-0000-0000-000000000000/photos')
         .set(TEST_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('fake'), 'test.jpg')
         .expect(404);
@@ -285,7 +285,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should forbid upload by different host', async () => {
       await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/photos`)
+        .post(`/api/accommodations/${testAccommodation.id}/photos`)
         .set(TEST_OTHER_HOST_TOKEN_HEADERS)
         .attach('photos', Buffer.from('fake'), 'test.jpg')
         .expect(403);
@@ -311,7 +311,7 @@ describe('Accommodations (e2e)', () => {
       };
 
       const res = await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send(payload)
         .expect(201);
@@ -324,7 +324,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should reject overlapping rule', async () => {
       await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2027-01-15',
@@ -335,7 +335,7 @@ describe('Accommodations (e2e)', () => {
         .expect(201);
 
       await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2027-01-01',
@@ -347,7 +347,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should reject rule with endDate before startDate', async () => {
       await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-12-20',
@@ -359,7 +359,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should update rule', async () => {
       const create = await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-07-01',
@@ -371,7 +371,7 @@ describe('Accommodations (e2e)', () => {
       const rule = create.body as RuleResponseDto;
 
       const updateRes = await request(app.getHttpServer() as App)
-        .patch(`/accommodations/${testAccommodation.id}/rules/${rule.id}`)
+        .patch(`/api/accommodations/${testAccommodation.id}/rules/${rule.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({ multiplier: 1.65, overridePrice: 180 })
         .expect(200);
@@ -384,7 +384,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should reject update to overlapping period', async () => {
       await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-01-01',
@@ -394,7 +394,7 @@ describe('Accommodations (e2e)', () => {
         .expect(201);
 
       const create = await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-02-01',
@@ -406,7 +406,7 @@ describe('Accommodations (e2e)', () => {
       const rule = create.body as RuleResponseDto;
 
       await request(app.getHttpServer() as App)
-        .patch(`/accommodations/${testAccommodation.id}/rules/${rule.id}`)
+        .patch(`/api/accommodations/${testAccommodation.id}/rules/${rule.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-01-15',
@@ -417,7 +417,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should list rules', async () => {
       await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2028-01-01',
@@ -428,7 +428,7 @@ describe('Accommodations (e2e)', () => {
         .expect(201);
 
       await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2028-06-01',
@@ -438,7 +438,7 @@ describe('Accommodations (e2e)', () => {
         .expect(201);
 
       const res = await request(app.getHttpServer() as App)
-        .get(`/accommodations/${testAccommodation.id}/rules`)
+        .get(`/api/accommodations/${testAccommodation.id}/rules`)
         .expect(200);
 
       const body = res.body as RuleResponseDto[];
@@ -449,7 +449,7 @@ describe('Accommodations (e2e)', () => {
 
     it('should delete rule', async () => {
       const create = await request(app.getHttpServer() as App)
-        .post(`/accommodations/${testAccommodation.id}/rules`)
+        .post(`/api/accommodations/${testAccommodation.id}/rules`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .send({
           startDate: '2025-03-01',
@@ -461,7 +461,7 @@ describe('Accommodations (e2e)', () => {
       const rule = create.body as RuleResponseDto;
 
       await request(app.getHttpServer() as App)
-        .delete(`/accommodations/${testAccommodation.id}/rules/${rule.id}`)
+        .delete(`/api/accommodations/${testAccommodation.id}/rules/${rule.id}`)
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(204);
     });
@@ -469,7 +469,7 @@ describe('Accommodations (e2e)', () => {
     it('should return 404 when deleting non-existent rule', async () => {
       await request(app.getHttpServer() as App)
         .delete(
-          `/accommodations/${testAccommodation.id}/rules/00000000-0000-0000-0000-000000000000`,
+          `/api/accommodations/${testAccommodation.id}/rules/00000000-0000-0000-0000-000000000000`,
         )
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(404);
