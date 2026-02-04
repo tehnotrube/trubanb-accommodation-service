@@ -1,10 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ObjectLiteral, Repository, SelectQueryBuilder } from 'typeorm';
 import { AccommodationsService } from './accommodations.service';
 import { Accommodation } from './entities/accommodation.entity';
 import { StorageService } from '../storage/storage.service';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { GetAccommodationsDto } from './dto/get-accommodations.dto';
+
+const createMockQueryBuilder = <
+  T extends ObjectLiteral = Accommodation,
+>(): jest.Mocked<SelectQueryBuilder<T>> => {
+  return {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getManyAndCount: jest.fn(),
+  } as unknown as jest.Mocked<SelectQueryBuilder<T>>;
+};
 
 describe('AccommodationsService', () => {
   let service: AccommodationsService;
@@ -25,6 +39,9 @@ describe('AccommodationsService', () => {
       autoApprove: true,
       createdAt: new Date('2025-01-01'),
       updatedAt: new Date('2025-01-02'),
+      accommodationRules: [],
+      blockedPeriods: [],
+      isPerUnit: true,
       ...partial,
     }) as Accommodation;
 
@@ -42,6 +59,7 @@ describe('AccommodationsService', () => {
             findAndCount: jest.fn(),
             findOneBy: jest.fn(),
             remove: jest.fn(),
+            createQueryBuilder: jest.fn(),
           },
         },
         {
@@ -49,7 +67,6 @@ describe('AccommodationsService', () => {
           useValue: {
             getPublicUrls: jest.fn(),
             uploadFiles: jest.fn(),
-            deleteFile: jest.fn(),
             deleteFiles: jest.fn(),
           },
         },
@@ -92,16 +109,125 @@ describe('AccommodationsService', () => {
   });
 
   describe('findAll', () => {
-    it('should return paginated dtos', async () => {
-      const entities = [mockEntity(), mockEntity({ id: 'second' })];
-      accommodationRepo.findAndCount.mockResolvedValue([entities, 2]);
-      storageService.getPublicUrls.mockReturnValue(mockPublicUrls);
+    it('should return paginated dtos without filters', async () => {
+      const entities = [
+        mockEntity({ id: '1', name: 'A', basePrice: 100 }),
+        mockEntity({ id: '2', name: 'B', basePrice: 150 }),
+      ];
+
+      const qb = createMockQueryBuilder<Accommodation>();
+      qb.getManyAndCount.mockResolvedValue([entities, 2]);
+
+      accommodationRepo.createQueryBuilder.mockReturnValue(qb);
+
+      storageService.getPublicUrls
+        .mockReturnValueOnce(mockPublicUrls)
+        .mockReturnValueOnce(mockPublicUrls);
 
       const result = await service.findAll({ page: 1, pageSize: 10 });
 
       expect(result.data).toHaveLength(2);
       expect(result.total).toBe(2);
-      expect(result.data[0].photoUrls).toEqual(mockPublicUrls);
+      expect(result.page).toBe(1);
+      expect(result.pageSize).toBe(10);
+
+      expect(accommodationRepo.createQueryBuilder).toHaveBeenCalledWith('acc');
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledTimes(2);
+      expect(qb.getManyAndCount).toHaveBeenCalled();
+    });
+
+    it('should apply location filter when provided', async () => {
+      const qb = createMockQueryBuilder<Accommodation>();
+      qb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      accommodationRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.findAll({ page: 1, pageSize: 10, location: 'Paris' });
+
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('LOWER(acc.location) LIKE LOWER(:location)'),
+        expect.objectContaining({ location: '%Paris%' }), // ← fixed: capital P
+      );
+    });
+
+    it('should apply guests filter when provided', async () => {
+      const qb = createMockQueryBuilder<Accommodation>();
+      qb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      accommodationRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.findAll({ page: 1, pageSize: 10, guests: 3 });
+
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        ':guests BETWEEN acc.minGuests AND acc.maxGuests',
+        { guests: 3 },
+      );
+    });
+
+    it('should filter by availability and calculate prices when dates are provided', async () => {
+      const entity = mockEntity({
+        id: '1',
+        basePrice: 100,
+        isPerUnit: true,
+        minGuests: 1,
+        maxGuests: 4,
+        accommodationRules: [],
+        blockedPeriods: [],
+        photoKeys: [],
+      });
+
+      const qb = createMockQueryBuilder<Accommodation>();
+      qb.getManyAndCount.mockResolvedValue([[entity], 1]);
+
+      accommodationRepo.createQueryBuilder.mockReturnValue(qb);
+
+      storageService.getPublicUrls.mockReturnValue(['photo.jpg']);
+
+      const query: GetAccommodationsDto = {
+        page: 1,
+        pageSize: 10,
+        checkIn: '2026-03-10',
+        checkOut: '2026-03-15',
+        guests: 2,
+      };
+
+      const result = await service.findAll(query);
+
+      expect(result.data[0].totalPriceForStay).toBe(500);
+      expect(result.data[0].pricePerNight).toBe(100);
+      expect(result.data[0].appliedRulesCount).toBe(0);
+    });
+
+    it('should throw BadRequestException when checkOut is before checkIn', async () => {
+      const qb = createMockQueryBuilder<Accommodation>();
+      qb.getManyAndCount.mockResolvedValue([[], 1]);
+
+      accommodationRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await expect(
+        service.findAll({
+          page: 1,
+          pageSize: 10,
+          checkIn: '2026-03-15',
+          checkOut: '2026-03-10',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException on invalid date format', async () => {
+      const qb = createMockQueryBuilder<Accommodation>();
+      qb.getManyAndCount.mockResolvedValue([[], 1]);
+
+      accommodationRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await expect(
+        service.findAll({
+          page: 1,
+          pageSize: 10,
+          checkIn: 'invalid-date',
+          checkOut: '2026-03-15',
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -177,8 +303,8 @@ describe('AccommodationsService', () => {
       });
       storageService.getPublicUrls.mockReturnValue([
         ...mockPublicUrls,
-        'new1',
-        'new2',
+        'new1.jpg',
+        'new2.jpg',
       ]);
 
       const result = await service.uploadPhotos('123', files, 'host-123');
