@@ -4,7 +4,10 @@ import {
 } from '@testcontainers/postgresql';
 import { MinioContainer, StartedMinioContainer } from '@testcontainers/minio';
 import { getTypeOrmConfig } from '../../src/db/typeorm.config';
-import { RabbitMQContainer, StartedRabbitMQContainer } from '@testcontainers/rabbitmq';
+import {
+  RabbitMQContainer,
+  StartedRabbitMQContainer,
+} from '@testcontainers/rabbitmq';
 
 export let dbContainer: StartedPostgreSqlContainer;
 export let minioContainer: StartedMinioContainer;
@@ -25,8 +28,8 @@ export default async function globalSetup() {
     .start();
 
   rabbitContainer = await new RabbitMQContainer('rabbitmq:management')
-  .withExposedPorts(5672)
-  .start();
+    .withExposedPorts(5672)
+    .start();
 
   const rabbitHost = rabbitContainer.getHost();
   const rabbitPort = rabbitContainer.getMappedPort(5672);

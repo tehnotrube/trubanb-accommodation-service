@@ -21,7 +21,9 @@ describe('ReservationEventsController', () => {
       ],
     }).compile();
 
-    controller = module.get<ReservationEventsController>(ReservationEventsController);
+    controller = module.get<ReservationEventsController>(
+      ReservationEventsController,
+    );
     blockedPeriodsService = module.get(BlockedPeriodsService);
   });
 
@@ -37,8 +39,12 @@ describe('ReservationEventsController', () => {
 
       await controller.handleReservationCreated(mockEvent);
 
-      expect(blockedPeriodsService.createReservationBlock).toHaveBeenCalledWith(mockEvent);
-      expect(blockedPeriodsService.createReservationBlock).toHaveBeenCalledTimes(1);
+      expect(blockedPeriodsService.createReservationBlock).toHaveBeenCalledWith(
+        mockEvent,
+      );
+      expect(
+        blockedPeriodsService.createReservationBlock,
+      ).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -48,8 +54,12 @@ describe('ReservationEventsController', () => {
 
       await controller.handleReservationRemoved(mockEvent);
 
-      expect(blockedPeriodsService.removeReservationBlock).toHaveBeenCalledWith('res-123');
-      expect(blockedPeriodsService.removeReservationBlock).toHaveBeenCalledTimes(1);
+      expect(blockedPeriodsService.removeReservationBlock).toHaveBeenCalledWith(
+        'res-123',
+      );
+      expect(
+        blockedPeriodsService.removeReservationBlock,
+      ).toHaveBeenCalledTimes(1);
     });
   });
 });

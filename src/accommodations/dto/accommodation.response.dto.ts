@@ -68,4 +68,20 @@ export class AccommodationResponseDto {
   @Expose()
   @Type(() => RuleResponseDto)
   accommodationRules: RuleResponseDto[];
+
+  @ApiProperty()
+  @Expose()
+  available?: boolean;
+
+  @ApiProperty()
+  @Expose()
+  totalPriceForStay?: number;
+
+  @ApiProperty()
+  @Expose()
+  pricePerNight?: number;
+
+  @ApiProperty()
+  @Expose()
+  appliedRulesCount?: number;
 }

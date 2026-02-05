@@ -67,6 +67,77 @@ describe('Accommodations (e2e)', () => {
       expect(body.data).toHaveLength(0);
       expect(body.total).toBe(accommodationsFixture.length);
     });
+    it('should filter by location (case-insensitive partial match)', async () => {
+      const res = await request(app.getHttpServer() as App)
+        .get('/api/accommodations?location=city')
+        .expect(200);
+
+      const body = res.body as PaginatedResponse<AccommodationResponseDto>;
+
+      expect(body.data.length).toBe(1);
+      expect(body.data[0].name).toBe('Test Hotel');
+      expect(body.data[0].location.toLowerCase()).toContain('city');
+
+      expect(
+        body.data.some((acc) => acc.location.toLowerCase().includes('coastal')),
+      ).toBe(false);
+    });
+
+    it('should filter by number of guests (must fit the requested number)', async () => {
+      const res = await request(app.getHttpServer() as App)
+        .get('/api/accommodations?guests=5')
+        .expect(200);
+
+      const body = res.body as PaginatedResponse<AccommodationResponseDto>;
+
+      expect(body.data.length).toBe(1);
+      expect(body.data[0].name).toBe('Beach House');
+      expect(body.data[0].minGuests).toBeLessThanOrEqual(5);
+      expect(body.data[0].maxGuests).toBeGreaterThanOrEqual(5);
+
+      expect(body.data.some((acc) => acc.name === 'Test Hotel')).toBe(false);
+    });
+
+    it('should calculate and return totalPriceForStay & pricePerNight when check-in/check-out are provided', async () => {
+      const res = await request(app.getHttpServer() as App)
+        .get(
+          '/api/accommodations?checkIn=2026-05-01&checkOut=2026-05-04&guests=2',
+        )
+        .expect(200);
+
+      const body = res.body as PaginatedResponse<AccommodationResponseDto>;
+
+      expect(body.data.length).toBeGreaterThan(0);
+
+      body.data.forEach((acc) => {
+        expect(acc.totalPriceForStay).toBeDefined();
+        expect(typeof acc.totalPriceForStay).toBe('number');
+        expect(acc.totalPriceForStay).toBeGreaterThan(0);
+
+        expect(acc.pricePerNight).toBeDefined();
+        expect(typeof acc.pricePerNight).toBe('number');
+        expect(acc.pricePerNight).toBeGreaterThan(0);
+
+        const expectedMinTotal = acc.pricePerNight! * 3 * 0.9;
+        const expectedMaxTotal = acc.pricePerNight! * 3 * 1.1;
+        expect(acc.totalPriceForStay!).toBeGreaterThanOrEqual(expectedMinTotal);
+        expect(acc.totalPriceForStay!).toBeLessThanOrEqual(expectedMaxTotal);
+      });
+    });
+
+    it('should not return price fields when no dates are provided', async () => {
+      const res = await request(app.getHttpServer() as App)
+        .get('/api/accommodations')
+        .expect(200);
+
+      const body = res.body as PaginatedResponse<AccommodationResponseDto>;
+
+      body.data.forEach((acc) => {
+        expect(acc.totalPriceForStay).toBeUndefined();
+        expect(acc.pricePerNight).toBeUndefined();
+        expect(acc.appliedRulesCount).toBeUndefined();
+      });
+    });
   });
 
   describe('GET /accommodations/:id', () => {
