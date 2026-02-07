@@ -84,14 +84,14 @@ export class AccommodationsService {
     return this.toResponseDto(saved);
   }
 
-  private calculateNights(checkIn: string, checkOut: string): number {
+  public calculateNights(checkIn: string, checkOut: string): number {
     const start = new Date(checkIn);
     const end = new Date(checkOut);
     const diffMs = end.getTime() - start.getTime();
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   }
 
-  private calculatePriceForPeriod(
+  public calculatePriceForPeriod(
     accommodation: Accommodation,
     checkIn: Date,
     nights: number,
@@ -110,12 +110,14 @@ export class AccommodationsService {
       let nightPrice = base;
 
       for (const rule of rules) {
-        if (nightDate >= rule.startDate && nightDate <= rule.endDate) {
+        const ruleStart = new Date(rule.startDate);
+        const ruleEnd = new Date(rule.endDate);
+        if (nightDate >= ruleStart && nightDate <= ruleEnd) {
           if (rule.overridePrice !== null && rule.overridePrice !== undefined) {
             nightPrice = rule.overridePrice;
-          } else {
-            nightPrice = base * (rule.multiplier ?? 1.0);
           }
+
+          nightPrice = nightPrice * (rule.multiplier ?? 1.0);
           rulesApplied++;
           break;
         }
