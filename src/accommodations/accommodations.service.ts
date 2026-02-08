@@ -50,9 +50,9 @@ export class AccommodationsService {
 
   private checkHostOwnership(
     accommodation: Accommodation,
-    hostEmail: string,
+    hostId: string,
   ): void {
-    if (accommodation.hostId !== hostEmail) {
+    if (accommodation.hostId !== hostId) {
       throw new ForbiddenException('You do not own this accommodation');
     }
   }
@@ -67,7 +67,7 @@ export class AccommodationsService {
 
   async create(
     createAccommodationDto: CreateAccommodationDto,
-    hostEmail: string,
+    hostId: string,
   ): Promise<AccommodationResponseDto> {
     if (createAccommodationDto.minGuests > createAccommodationDto.maxGuests) {
       throw new BadRequestException(
@@ -77,7 +77,7 @@ export class AccommodationsService {
 
     const accommodation = this.accommodationRepository.create({
       ...createAccommodationDto,
-      hostId: hostEmail,
+      hostId,
       photoKeys: [],
     });
     const saved = await this.accommodationRepository.save(accommodation);
@@ -234,19 +234,19 @@ export class AccommodationsService {
   async update(
     id: string,
     updateAccommodationDto: UpdateAccommodationDto,
-    hostEmail: string, // ← added for ownership check
+    hostId: string, // ← added for ownership check
   ): Promise<AccommodationResponseDto> {
     const accommodation = await this.findOneEntityOrFail(id);
-    this.checkHostOwnership(accommodation, hostEmail);
+    this.checkHostOwnership(accommodation, hostId);
 
     Object.assign(accommodation, updateAccommodationDto);
     const saved = await this.accommodationRepository.save(accommodation);
     return this.toResponseDto(saved);
   }
 
-  async remove(id: string, hostEmail: string): Promise<void> {
+  async remove(id: string, hostId: string): Promise<void> {
     const accommodation = await this.findOneEntityOrFail(id);
-    this.checkHostOwnership(accommodation, hostEmail);
+    this.checkHostOwnership(accommodation, hostId);
 
     if (accommodation.photoKeys.length > 0) {
       await this.storageService.deleteFiles(accommodation.photoKeys);
@@ -257,10 +257,10 @@ export class AccommodationsService {
   async uploadPhotos(
     id: string,
     files: Express.Multer.File[],
-    hostEmail: string,
+    hostId: string,
   ): Promise<AccommodationResponseDto> {
     const accommodation = await this.findOneEntityOrFail(id);
-    this.checkHostOwnership(accommodation, hostEmail);
+    this.checkHostOwnership(accommodation, hostId);
 
     const uploadedKeys = await this.storageService.uploadFiles(files, id);
     accommodation.photoKeys.push(...uploadedKeys);

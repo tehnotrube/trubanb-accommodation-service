@@ -43,9 +43,9 @@ export class AccommodationRulesService {
 
   private checkHostOwnership(
     accommodation: Accommodation,
-    hostEmail: string,
+    hostId: string,
   ): void {
-    if (accommodation.hostId !== hostEmail) {
+    if (accommodation.hostId !== hostId) {
       throw new ForbiddenException('You do not own this accommodation');
     }
   }
@@ -99,14 +99,14 @@ export class AccommodationRulesService {
   async createRule(
     accommodationId: string,
     dto: CreateRuleDto,
-    hostEmail: string,
+    hostId: string,
   ): Promise<RuleResponseDto> {
     if (dto.startDate >= dto.endDate) {
       throw new BadRequestException('startDate must be before endDate');
     }
 
     const accommodation = await this.findAccommodationOrFail(accommodationId);
-    this.checkHostOwnership(accommodation, hostEmail);
+    this.checkHostOwnership(accommodation, hostId);
 
     await this.checkNoActiveReservations(
       accommodationId,
@@ -137,7 +137,7 @@ export class AccommodationRulesService {
     accommodationId: string,
     ruleId: string,
     dto: UpdateRuleDto,
-    hostEmail: string,
+    hostId: string,
   ): Promise<RuleResponseDto> {
     const rule = await this.ruleRepository.findOne({
       where: { id: ruleId, accommodationId },
@@ -147,7 +147,7 @@ export class AccommodationRulesService {
     }
 
     const accommodation = await this.findAccommodationOrFail(accommodationId);
-    this.checkHostOwnership(accommodation, hostEmail);
+    this.checkHostOwnership(accommodation, hostId);
 
     const effectiveStart = dto.startDate ?? rule.startDate;
     const effectiveEnd = dto.endDate ?? rule.endDate;
@@ -172,7 +172,7 @@ export class AccommodationRulesService {
   async deleteRule(
     accommodationId: string,
     ruleId: string,
-    hostEmail: string,
+    hostId: string,
   ): Promise<void> {
     const rule = await this.ruleRepository.findOne({
       where: { id: ruleId, accommodationId },
@@ -182,7 +182,7 @@ export class AccommodationRulesService {
     }
 
     const accommodation = await this.findAccommodationOrFail(accommodationId);
-    this.checkHostOwnership(accommodation, hostEmail);
+    this.checkHostOwnership(accommodation, hostId);
 
     await this.checkNoActiveReservations(
       accommodationId,
