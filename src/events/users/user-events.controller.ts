@@ -1,8 +1,8 @@
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Controller, Logger } from '@nestjs/common';
 import type { UserDeletedEvent } from './user-deleted-event';
-import { AccommodationsService } from '../../accommodations/accommodations.service';
-import { UserRole } from '../../auth/guards/roles.guard';
+import { AccommodationsService } from 'src/accommodations/accommodations.service';
+import { UserRole } from 'src/auth/guards/roles.guard';
 
 @Controller()
 export class UserEventsController {
@@ -17,9 +17,9 @@ export class UserEventsController {
     createQueueIfNotExists: true,
   })
   async handleUserDeleted(event: UserDeletedEvent) {
-    const { userId, userEmail } = event;
+    const { userId } = event;
 
-    this.logger.log(`Received user.deleted event → cleaning up for userId=${userId}, email=${userEmail}`);
+    this.logger.log(`Received user.deleted event → cleaning up for userId=${userId}`);
 
     try {
       if (event.userRole && event.userRole !== UserRole.HOST) {
@@ -27,10 +27,10 @@ export class UserEventsController {
         return;
       }
 
-      const deletedCount = await this.accommodationService.removeAllByHostId(userId);
+      const deleteResult = await this.accommodationService.deleteByHostId(userId);
 
       this.logger.log(
-        `Successfully deleted ${deletedCount} accommodations for deleted user ${userId}`,
+        `Successfully deleted ${deleteResult.affected} accommodations for deleted user ${userId}`,
       );
     } catch (error) {
       this.logger.error(

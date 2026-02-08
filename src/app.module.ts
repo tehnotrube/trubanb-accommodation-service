@@ -16,10 +16,11 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
       isGlobal: true,
     }),
     RabbitMQModule.forRoot({
-      exchanges: [
-        { name: 'reservation.events', type: 'topic' },
-        { name: 'user.events', type: 'topic' },
-      ],
+      exchanges: [{ name: 'reservation.events', type: 'topic' },
+        {
+          name: 'user.events',
+          type: 'topic',
+        },],
       uri: process.env.RABBITMQ_URL!,
       connectionInitOptions: { wait: true },
       enableControllerDiscovery: true,
