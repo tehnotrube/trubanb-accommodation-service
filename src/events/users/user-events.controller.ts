@@ -17,9 +17,9 @@ export class UserEventsController {
     createQueueIfNotExists: true,
   })
   async handleUserDeleted(event: UserDeletedEvent) {
-    const { userId } = event;
+    const { userId, userEmail } = event;
 
-    this.logger.log(`Received user.deleted event → cleaning up for userId=${userId}`);
+    this.logger.log(`Received user.deleted event → cleaning up for userId=${userId}, email=${userEmail}`);
 
     try {
       if (event.userRole && event.userRole !== UserRole.HOST) {
@@ -27,10 +27,10 @@ export class UserEventsController {
         return;
       }
 
-      const deleteResult = await this.accommodationService.deleteByHostId(userId);
+      const deletedCount = await this.accommodationService.removeAllByHostId(userId);
 
       this.logger.log(
-        `Successfully deleted ${deleteResult.affected} accommodations for deleted user ${userId}`,
+        `Successfully deleted ${deletedCount} accommodations for deleted user ${userId}`,
       );
     } catch (error) {
       this.logger.error(
