@@ -59,6 +59,8 @@ export class AccommodationsGrpcController {
       id: data.accommodationId,
     });
 
+    console.log(`[GetAccommodationInfo] accId=${data.accommodationId}, found=${!!accommodation}, hostId=${accommodation?.hostId}`);
+
     if (!accommodation) {
       return {
         exists: false,
