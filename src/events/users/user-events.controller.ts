@@ -1,8 +1,8 @@
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Controller, Logger } from '@nestjs/common';
 import type { UserDeletedEvent } from './user-deleted-event';
-import { AccommodationsService } from 'src/accommodations/accommodations.service';
-import { UserRole } from 'src/auth/guards/roles.guard';
+import { AccommodationsService } from '../../accommodations/accommodations.service';
+import { UserRole } from '../../auth/guards/roles.guard';
 
 @Controller()
 export class UserEventsController {
