@@ -77,7 +77,7 @@ export class AccommodationsService {
 
     const accommodation = this.accommodationRepository.create({
       ...createAccommodationDto,
-      hostId,
+      hostId: hostId,
       photoKeys: [],
     });
     const saved = await this.accommodationRepository.save(accommodation);
@@ -266,5 +266,20 @@ export class AccommodationsService {
     accommodation.photoKeys.push(...uploadedKeys);
     const saved = await this.accommodationRepository.save(accommodation);
     return this.toResponseDto(saved);
+  }
+
+  async deleteByHostId(hostId: string) {
+    try {
+      const result = await this.accommodationRepository
+        .createQueryBuilder()
+        .delete()
+        .from(Accommodation)
+        .where('hostId = :hostId', { hostId })
+        .execute();
+
+      return result;
+    } catch (err) {
+      throw err;
+    }
   }
 }
