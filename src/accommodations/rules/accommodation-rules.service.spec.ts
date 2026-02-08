@@ -22,8 +22,8 @@ describe('AccommodationRulesService', () => {
   let accommodationRepo: jest.Mocked<Repository<Accommodation>>;
   let blockedRepo: jest.Mocked<Repository<any>>; // we mock blockedRepo only for checkNoActiveReservations
 
-  const HOST_EMAIL = 'host@example.com';
-  const OTHER_EMAIL = 'other@example.com';
+  const HOST_ID = 'host-123';
+  const OTHER_ID = 'host-456';
 
   const mockAccommodation = (
     partial: Partial<Accommodation> = {},
@@ -32,7 +32,7 @@ describe('AccommodationRulesService', () => {
       id: 'acc_01JTESTACCOM001',
       name: 'Test Apartment',
       location: 'Belgrade',
-      hostId: HOST_EMAIL,
+      hostId: HOST_ID,
       ...partial,
     }) as Accommodation;
 
@@ -94,7 +94,7 @@ describe('AccommodationRulesService', () => {
       accommodationRepo.findOneBy.mockResolvedValue(mockAccommodation());
 
       await expect(
-        service.createRule('acc-id', {} as CreateRuleDto, OTHER_EMAIL),
+        service.createRule('acc-id', {} as CreateRuleDto, OTHER_ID),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -105,17 +105,17 @@ describe('AccommodationRulesService', () => {
       } as CreateRuleDto;
 
       accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
+        mockAccommodation({ hostId: HOST_ID }),
       );
 
       await expect(
-        service.createRule('acc-id', dto, HOST_EMAIL),
+        service.createRule('acc-id', dto, HOST_ID),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw when period overlaps with existing rule', async () => {
       accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
+        mockAccommodation({ hostId: HOST_ID }),
       );
       blockedRepo.count.mockResolvedValue(0);
       ruleRepo.count.mockResolvedValue(1);
@@ -126,13 +126,13 @@ describe('AccommodationRulesService', () => {
       };
 
       await expect(
-        service.createRule('acc-id', dto, HOST_EMAIL),
+        service.createRule('acc-id', dto, HOST_ID),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw when period contains active reservation', async () => {
       accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
+        mockAccommodation({ hostId: HOST_ID }),
       );
       blockedRepo.count.mockResolvedValue(1);
 
@@ -142,7 +142,7 @@ describe('AccommodationRulesService', () => {
       };
 
       await expect(
-        service.createRule('acc-id', dto, HOST_EMAIL),
+        service.createRule('acc-id', dto, HOST_ID),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -154,7 +154,7 @@ describe('AccommodationRulesService', () => {
       };
 
       accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
+        mockAccommodation({ hostId: HOST_ID }),
       );
       blockedRepo.count.mockResolvedValue(0);
       ruleRepo.count.mockResolvedValue(0);
@@ -167,7 +167,7 @@ describe('AccommodationRulesService', () => {
       ruleRepo.create.mockReturnValue(createdRule);
       ruleRepo.save.mockResolvedValue(createdRule);
 
-      const result = await service.createRule('acc-id', dto, HOST_EMAIL);
+      const result = await service.createRule('acc-id', dto, HOST_ID);
 
       expect(result.id).toBe('new-rule');
       expect(result.multiplier).toBe(1.0);
@@ -189,7 +189,7 @@ describe('AccommodationRulesService', () => {
           'acc-id',
           'rule-id',
           {} as UpdateRuleDto,
-          HOST_EMAIL,
+          HOST_ID,
         ),
       ).rejects.toThrow(NotFoundException);
     });
@@ -198,7 +198,7 @@ describe('AccommodationRulesService', () => {
       const existingRule = mockRule();
 
       accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
+        mockAccommodation({ hostId: HOST_ID }),
       );
       ruleRepo.findOne.mockResolvedValue(existingRule);
       blockedRepo.count.mockResolvedValue(0);
@@ -209,7 +209,7 @@ describe('AccommodationRulesService', () => {
           'acc-id',
           'rule-id',
           { startDate: new Date('2025-12-15') } as UpdateRuleDto,
-          HOST_EMAIL,
+          HOST_ID,
         ),
       ).rejects.toThrow(BadRequestException);
     });
@@ -218,7 +218,7 @@ describe('AccommodationRulesService', () => {
       const existingRule = mockRule({ multiplier: 1.2 });
 
       accommodationRepo.findOneBy.mockResolvedValue(
-        mockAccommodation({ hostId: HOST_EMAIL }),
+        mockAccommodation({ hostId: HOST_ID }),
       );
       ruleRepo.findOne.mockResolvedValue(existingRule);
       blockedRepo.count.mockResolvedValue(0);
@@ -235,7 +235,7 @@ describe('AccommodationRulesService', () => {
         'acc-id',
         'rule-id',
         { multiplier: 1.65, overridePrice: 180 } as UpdateRuleDto,
-        HOST_EMAIL,
+        HOST_ID,
       );
 
       expect(result.multiplier).toBe(1.65);
