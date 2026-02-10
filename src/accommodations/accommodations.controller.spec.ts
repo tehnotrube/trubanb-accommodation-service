@@ -133,7 +133,7 @@ describe('AccommodationsController', () => {
 
       expect(mockAccommodationsService.create).toHaveBeenCalledWith(
         createDto,
-        mockUser().email,
+        mockUser().id,
       );
       expect(result).toEqual(expected);
     });
@@ -209,7 +209,7 @@ describe('AccommodationsController', () => {
       expect(mockAccommodationsService.update).toHaveBeenCalledWith(
         'acc_01JMOCKEDACCOM001',
         updateDto,
-        'test.host@example.com',
+        mockUser().id,
       );
       expect(result).toEqual(updated);
     });
@@ -223,7 +223,7 @@ describe('AccommodationsController', () => {
 
       expect(mockAccommodationsService.remove).toHaveBeenCalledWith(
         'acc_01JMOCKEDACCOM001',
-        'test.host@example.com',
+        mockUser().id,
       );
     });
   });
@@ -253,7 +253,7 @@ describe('AccommodationsController', () => {
       expect(mockAccommodationsService.uploadPhotos).toHaveBeenCalledWith(
         'acc_01JMOCKEDACCOM001',
         mockFiles,
-        'test.host@example.com',
+        mockUser().id,
       );
       expect(result).toEqual(updated);
     });
@@ -289,7 +289,7 @@ describe('AccommodationsController', () => {
       expect(mockRulesService.createRule).toHaveBeenCalledWith(
         'acc_01JMOCKEDACCOM001',
         expect.objectContaining(createDto),
-        'test.host@example.com',
+        mockUser().id,
       );
       expect(result).toEqual(expected);
     });
@@ -320,7 +320,7 @@ describe('AccommodationsController', () => {
         'acc_01JMOCKEDACCOM001',
         'rule_01JMOCKRULE001',
         updateDto,
-        'test.host@example.com',
+        mockUser().id,
       );
       expect(result).toEqual(updated);
     });
@@ -339,7 +339,7 @@ describe('AccommodationsController', () => {
       expect(mockRulesService.deleteRule).toHaveBeenCalledWith(
         'acc_01JMOCKEDACCOM001',
         'rule_01JMOCKRULE001',
-        'test.host@example.com',
+        mockUser().id,
       );
     });
   });
