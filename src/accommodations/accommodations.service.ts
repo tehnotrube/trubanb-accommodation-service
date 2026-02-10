@@ -77,7 +77,7 @@ export class AccommodationsService {
 
     const accommodation = this.accommodationRepository.create({
       ...createAccommodationDto,
-      hostId: hostId,
+      hostId,
       photoKeys: [],
     });
     const saved = await this.accommodationRepository.save(accommodation);

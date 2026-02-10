@@ -51,10 +51,7 @@ export class AccommodationsController {
     @Body() createAccommodationDto: CreateAccommodationDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<AccommodationResponseDto> {
-    return this.accommodationsService.create(
-      createAccommodationDto,
-      user.id,
-    );
+    return this.accommodationsService.create(createAccommodationDto, user.id);
   }
 
   @Get()
