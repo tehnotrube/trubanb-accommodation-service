@@ -51,10 +51,7 @@ export class AccommodationsController {
     @Body() createAccommodationDto: CreateAccommodationDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<AccommodationResponseDto> {
-    return this.accommodationsService.create(
-      createAccommodationDto,
-      user.email,
-    );
+    return this.accommodationsService.create(createAccommodationDto, user.id);
   }
 
   @Get()
@@ -80,7 +77,7 @@ export class AccommodationsController {
     return this.accommodationsService.update(
       id,
       updateAccommodationDto,
-      user.email,
+      user.id,
     );
   }
 
@@ -92,7 +89,7 @@ export class AccommodationsController {
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
-    await this.accommodationsService.remove(id, user.email);
+    await this.accommodationsService.remove(id, user.id);
   }
 
   @Post(':id/photos')
@@ -116,7 +113,7 @@ export class AccommodationsController {
     files: Express.Multer.File[],
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<AccommodationResponseDto> {
-    return this.accommodationsService.uploadPhotos(id, files, user.email);
+    return this.accommodationsService.uploadPhotos(id, files, user.id);
   }
 
   @Post(':id/rules')
@@ -127,7 +124,7 @@ export class AccommodationsController {
     @Body() dto: CreateRuleDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<RuleResponseDto> {
-    return this.rulesService.createRule(id, dto, user.email);
+    return this.rulesService.createRule(id, dto, user.id);
   }
 
   @Patch(':id/rules/:ruleId')
@@ -139,7 +136,7 @@ export class AccommodationsController {
     @Body() dto: UpdateRuleDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<RuleResponseDto> {
-    return this.rulesService.updateRule(id, ruleId, dto, user.email);
+    return this.rulesService.updateRule(id, ruleId, dto, user.id);
   }
 
   @Delete(':id/rules/:ruleId')
@@ -151,7 +148,7 @@ export class AccommodationsController {
     @Param('ruleId') ruleId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
-    await this.rulesService.deleteRule(id, ruleId, user.email);
+    await this.rulesService.deleteRule(id, ruleId, user.id);
   }
 
   @Get(':id/rules')
