@@ -174,7 +174,7 @@ describe('Accommodations (e2e)', () => {
       basePrice: 95.5,
       autoApprove: true,
       isPerUnit: true,
-      hostId: 'host@test.com',
+      hostId: 'test-host-123',
     };
 
     it('should create accommodation', async () => {

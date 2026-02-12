@@ -10,6 +10,7 @@ import { BlockedPeriod } from './entities/blocked-period.entity';
 import { StorageService } from '../storage/storage.service';
 import { AccommodationRulesService } from './rules/accommodation-rules.service';
 import { ReservationEventsController } from '../events/reservations/reservation-events.controller';
+import { UserEventsController } from '../events/users/user-events.controller';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ReservationEventsController } from '../events/reservations/reservation-
   ],
   controllers: [
     ReservationEventsController,
+    UserEventsController,
     AccommodationsController,
     AccommodationsGrpcController,
   ],

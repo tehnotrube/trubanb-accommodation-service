@@ -77,7 +77,7 @@ export class AccommodationsService {
 
     const accommodation = this.accommodationRepository.create({
       ...createAccommodationDto,
-      hostId,
+      hostId: hostId,
       photoKeys: [],
     });
     const saved = await this.accommodationRepository.save(accommodation);
@@ -266,5 +266,31 @@ export class AccommodationsService {
     accommodation.photoKeys.push(...uploadedKeys);
     const saved = await this.accommodationRepository.save(accommodation);
     return this.toResponseDto(saved);
+  }
+
+  async removeAllByHostId(hostId: string): Promise<number> {
+    const accommodations = await this.accommodationRepository.find({
+      where: { hostId },
+    });
+
+    if (accommodations.length === 0) {
+      return 0;
+    }
+
+    const photoKeys = accommodations.flatMap((acc) => acc.photoKeys || []);
+    if (photoKeys.length > 0) {
+      await this.storageService.deleteFiles(photoKeys);
+    }
+
+    await this.accommodationRepository.remove(accommodations);
+    return accommodations.length;
+  }
+  async deleteByHostId(hostId: string) {
+    return await this.accommodationRepository
+      .createQueryBuilder()
+      .delete()
+      .from(Accommodation)
+      .where('hostId = :hostId', { hostId })
+      .execute();
   }
 }
