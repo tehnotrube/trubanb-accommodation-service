@@ -108,9 +108,9 @@ describe('AccommodationRulesService', () => {
         mockAccommodation({ hostId: HOST_ID }),
       );
 
-      await expect(
-        service.createRule('acc-id', dto, HOST_ID),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createRule('acc-id', dto, HOST_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw when period overlaps with existing rule', async () => {
@@ -125,9 +125,9 @@ describe('AccommodationRulesService', () => {
         endDate: new Date('2025-12-31'),
       };
 
-      await expect(
-        service.createRule('acc-id', dto, HOST_ID),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createRule('acc-id', dto, HOST_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw when period contains active reservation', async () => {
@@ -141,9 +141,9 @@ describe('AccommodationRulesService', () => {
         endDate: new Date('2025-07-25'),
       };
 
-      await expect(
-        service.createRule('acc-id', dto, HOST_ID),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createRule('acc-id', dto, HOST_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should successfully create rule with default multiplier', async () => {
@@ -185,12 +185,7 @@ describe('AccommodationRulesService', () => {
       ruleRepo.findOne.mockResolvedValue(null);
 
       await expect(
-        service.updateRule(
-          'acc-id',
-          'rule-id',
-          {} as UpdateRuleDto,
-          HOST_ID,
-        ),
+        service.updateRule('acc-id', 'rule-id', {} as UpdateRuleDto, HOST_ID),
       ).rejects.toThrow(NotFoundException);
     });
 

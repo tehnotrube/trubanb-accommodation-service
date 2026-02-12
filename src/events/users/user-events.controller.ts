@@ -17,17 +17,22 @@ export class UserEventsController {
     createQueueIfNotExists: true,
   })
   async handleUserDeleted(event: UserDeletedEvent) {
-    const { userId, userEmail } = event;
+    const { userId } = event;
 
-    this.logger.log(`Received user.deleted event → cleaning up for userId=${userId}, email=${userEmail}`);
+    this.logger.log(
+      `Received user.deleted event → cleaning up for userId=${userId}`,
+    );
 
     try {
       if (event.userRole && event.userRole !== UserRole.HOST) {
-        this.logger.debug(`User ${userId} is not a host → no accommodations to delete`);
+        this.logger.debug(
+          `User ${userId} is not a host → no accommodations to delete`,
+        );
         return;
       }
 
-      const deletedCount = await this.accommodationService.removeAllByHostId(userId);
+      const deletedCount =
+        await this.accommodationService.removeAllByHostId(userId);
 
       this.logger.log(
         `Successfully deleted ${deletedCount} accommodations for deleted user ${userId}`,
@@ -35,7 +40,7 @@ export class UserEventsController {
     } catch (error) {
       this.logger.error(
         `Failed to cleanup accommodations for deleted user ${userId}`,
-        error || error, 
+        error || error,
       );
       throw error;
     }

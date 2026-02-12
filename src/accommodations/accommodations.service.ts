@@ -293,22 +293,4 @@ export class AccommodationsService {
       .where('hostId = :hostId', { hostId })
       .execute();
   }
-
-  async removeAllByHostId(hostId: string): Promise<number> {
-    const accommodations = await this.accommodationRepository.find({
-      where: { hostId },
-    });
-
-    if (accommodations.length === 0) {
-      return 0;
-    }
-
-    const photoKeys = accommodations.flatMap((acc) => acc.photoKeys || []);
-    if (photoKeys.length > 0) {
-      await this.storageService.deleteFiles(photoKeys);
-    }
-
-    await this.accommodationRepository.remove(accommodations);
-    return accommodations.length;
-  }
 }
