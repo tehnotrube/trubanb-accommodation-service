@@ -34,6 +34,7 @@ export class AccommodationsService {
           startDate: b.startDate,
           endDate: b.endDate,
           reason: b.reason,
+          reservationId: b.reservationId,
         })),
         accommodationRules: entity.accommodationRules?.map((r) => ({
           id: r.id,

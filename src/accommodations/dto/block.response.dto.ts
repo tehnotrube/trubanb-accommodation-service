@@ -12,4 +12,7 @@ export class BlockResponseDto {
 
   @Expose()
   reason: 'RESERVATION' | 'MANUAL';
+
+  @Expose()
+  reservationId?: string;
 }
