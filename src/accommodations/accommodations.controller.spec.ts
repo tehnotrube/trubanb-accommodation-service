@@ -365,4 +365,33 @@ describe('AccommodationsController', () => {
       expect(result).toEqual(rules);
     });
   });
+
+  describe('findMine', () => {
+    it('should return accommodations owned by the current user', async () => {
+      const query: GetAccommodationsDto = {
+        page: 1,
+        pageSize: 10,
+      };
+
+      const user = mockUser();
+
+      const paginated: PaginatedResponse<AccommodationResponseDto> = {
+        data: [mockAccommodationResponse()],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      };
+
+      mockAccommodationsService.findAll.mockResolvedValue(paginated);
+
+      const result = await controller.findMine(query, user);
+
+      expect(mockAccommodationsService.findAll).toHaveBeenCalledWith(
+        query,
+        user.id,
+      );
+
+      expect(result).toEqual(paginated);
+    });
+  });
 });

@@ -138,6 +138,7 @@ export class AccommodationsService {
   }
   async findAll(
     query: GetAccommodationsDto,
+    hostId?: string,
   ): Promise<PaginatedResponse<AccommodationResponseDto>> {
     const page = Number(query.page) || 1;
     const pageSize = Number(query.pageSize) || 20;
@@ -147,6 +148,10 @@ export class AccommodationsService {
       .createQueryBuilder('acc')
       .leftJoinAndSelect('acc.blockedPeriods', 'bp')
       .leftJoinAndSelect('acc.accommodationRules', 'ar');
+
+    if (hostId) {
+      qb.andWhere('acc.hostId = :hostId', { hostId });
+    }
 
     if (query.location?.trim()) {
       qb.andWhere('LOWER(acc.location) LIKE LOWER(:location)', {

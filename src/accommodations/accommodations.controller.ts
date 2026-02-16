@@ -61,6 +61,16 @@ export class AccommodationsController {
     return this.accommodationsService.findAll(query);
   }
 
+  @Get('hosts/me')
+  @UseGuards(KongJwtGuard, RolesGuard)
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async findMine(
+    @Query() query: GetAccommodationsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<PaginatedResponse<AccommodationResponseDto>> {
+    return this.accommodationsService.findAll(query, user.id);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<AccommodationResponseDto> {
     return this.accommodationsService.findOne(id);

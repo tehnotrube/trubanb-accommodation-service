@@ -546,4 +546,21 @@ describe('Accommodations (e2e)', () => {
         .expect(404);
     });
   });
+
+  describe('GET /accommodations/hosts/me', () => {
+    it('should return only accommodations owned by the authenticated host', async () => {
+      const res = await request(app.getHttpServer() as App)
+        .get('/api/accommodations/hosts/me')
+        .set(TEST_HOST_TOKEN_HEADERS)
+        .expect(200);
+
+      const body = res.body as PaginatedResponse<AccommodationResponseDto>;
+
+      expect(body.data.length).toBeGreaterThan(0);
+
+      body.data.forEach((acc) => {
+        expect(acc.hostId).toBe(TEST_HOST_TOKEN_HEADERS['x-user-id']);
+      });
+    });
+  });
 });
