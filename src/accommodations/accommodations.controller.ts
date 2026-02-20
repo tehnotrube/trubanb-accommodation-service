@@ -61,7 +61,8 @@ export class AccommodationsController {
     return this.accommodationsService.findAll(query);
   }
 
-  @Get('hosts/me')
+  @Post('hosts/me')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(KongJwtGuard, RolesGuard)
   @Roles(UserRole.HOST, UserRole.ADMIN)
   async findMine(
