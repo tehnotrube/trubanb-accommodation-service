@@ -550,7 +550,7 @@ describe('Accommodations (e2e)', () => {
   describe('GET /accommodations/hosts/me', () => {
     it('should return only accommodations owned by the authenticated host', async () => {
       const res = await request(app.getHttpServer() as App)
-        .get('/api/accommodations/hosts/me')
+        .post('/api/accommodations/hosts/me')
         .set(TEST_HOST_TOKEN_HEADERS)
         .expect(200);
 
