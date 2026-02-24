@@ -62,7 +62,7 @@ jobs:
       - name: Prepare Kaniko Config
         run: |
           mkdir -p /tmp/kaniko
-          echo '{"auths":{"ghcr.io":{"auth":"'$$   (echo -n "   $${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64)'"}}}' > /tmp/kaniko/config.json
+          echo '{"auths":{"ghcr.io":{"auth":"'$(echo -n "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64)'"}}}' > /tmp/kaniko/config.json
 
       - name: Build & Push with Kaniko
         run: |
@@ -72,7 +72,7 @@ jobs:
             gcr.io/kaniko-project/executor:v1.23.2-debug \
             --context=/workspace \
             --dockerfile=/workspace/Dockerfile \
-            --destination=ghcr.io/$$   {{ github.repository_owner }}/trubanb-accommodation-service:   $${{ needs.release.outputs.new_release_version }} \
+            --destination=ghcr.io/${{ github.repository_owner }}/trubanb-accommodation-service:${{ needs.release.outputs.new_release_version }} \
             --destination=ghcr.io/${{ github.repository_owner }}/trubanb-accommodation-service:latest \
             --cache=true \
             --cache-repo=ghcr.io/${{ github.repository_owner }}/trubanb-accommodation-service-cache \
